@@ -1,0 +1,41 @@
+# --- IQL specific parameters ---
+
+# use epsilon greedy action selector
+action_selector: "epsilon_greedy"
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 100000
+evaluation_epsilon: 0.0
+runner: "episode"
+lr: 0.0011 # Learning rate for agents
+optim_alpha: 0.99 # RMSProp alpha
+optim_eps: 0.00001 # RMSProp epsilon
+grad_norm_clip: 10 # Reduce magnitude of gradients above this L2 norm
+
+buffer_size: 2000
+batch_size: 200 # Number of episodes to train on
+
+# update the target network every {} episodes
+target_update_interval_or_tau: 50
+
+use_tensorboard: False # Log results to tensorboard
+save_model: True
+save_model_interval: 5000
+
+obs_agent_id: False
+obs_last_action: False
+obs_individual_obs: False
+
+# use the Q_Learner to train
+
+hidden_dim: 64 # Size of hidden state for default rnn agent
+
+agent_output_type: "q"
+learner: "q_learner"
+standardise_returns: False
+standardise_rewards: True
+double_q: True
+use_rnn: False
+mixer: # Mixer becomes None
+
+name: "iql"
