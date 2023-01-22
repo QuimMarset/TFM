@@ -1,6 +1,7 @@
 from modules.agents import REGISTRY as agent_REGISTRY
 from components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
+import numpy as np
 import math
 
 
@@ -22,28 +23,16 @@ class SingleAC:
         avail_actions = th.tensor([1]*self.args.n_outputs).unsqueeze(0).expand(ep_batch.batch_size, -1)
         agent_outputs = self.forward(ep_batch, t_ep, test_mode=test_mode)
         chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
-        processed_actions = self.process_actions(chosen_actions.tolist())
+        processed_actions = self.process_actions(chosen_actions)
         return processed_actions
 
 
     def process_actions(self, chosen_actions):
-        processed_actions = []
-        for action in chosen_actions:
-            unfold_action = self.unfold_action(action)
-            processed_actions.append(unfold_action)
-        return th.tensor(processed_actions, dtype=int)
-
-
-    def unfold_action(self, action):
-        original_action = action
-        separated_actions = []
-        while action:
-            action, r = divmod(action, self.n_actions)
-            separated_actions.append(r)
-        separated_actions = list(reversed(separated_actions))
-        for _ in range(len(separated_actions), self.n_agents):
-            separated_actions.insert(0, 0)
-        return separated_actions
+        binary_repre = np.vectorize(np.binary_repr)
+        binary_actions = binary_repre(chosen_actions.numpy(), width=self.n_agents).tolist()
+        binary_list = lambda x: [int(digit) for digit in x]
+        binary_actions = list(map(binary_list, binary_actions))
+        return th.tensor(binary_actions, dtype=int)
 
     
     def init_hidden(self, batch_size):

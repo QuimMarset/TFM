@@ -6,12 +6,6 @@ import numpy as np
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
-def get_last_results_index(path):
-    folders = os.listdir(path)
-    folders = [folder for folder in folders if folder != '_sources']
-    folders = sorted(folders, key=lambda name: int(name))
-    return int(folders[-1])
-
 
 def load_results(results_path, index, file_name='metrics.json'):
     path = os.path.join(results_path, str(index), file_name)
@@ -20,9 +14,9 @@ def load_results(results_path, index, file_name='metrics.json'):
     return metrics
 
 
-def get_saved_steps(results_path, index):
+def get_saved_steps(results_path, index, metric_name):
     metrics = load_results(results_path, index)
-    steps = metrics['test_return_mean']['steps']
+    steps = metrics[metric_name]['steps']
     return steps
 
 
@@ -59,7 +53,7 @@ def compute_mean_std_runs(results_path, start_index, end_index, metric_name):
 
 def plot_test_return_over_runs(results_path, start_index, end_index):
     sns.set(style="whitegrid")
-    steps = get_saved_steps(results_path, start_index)
+    steps = get_saved_steps(results_path, start_index, 'test_return_mean')
     total_steps = get_total_steps(results_path, start_index)
     means, stds = compute_mean_std_runs(results_path, start_index, end_index, 'test_return_mean')
     env_name = get_env_name(results_path, start_index)
@@ -81,7 +75,7 @@ def plot_test_return_over_runs(results_path, start_index, end_index):
 
 def plot_train_return_over_runs(results_path, start_index, end_index, logger_steps):
     sns.set(style="whitegrid")
-    steps = get_saved_steps(results_path, start_index)
+    steps = get_saved_steps(results_path, start_index, 'return_mean')
     total_steps = get_total_steps(results_path, start_index)
     means, stds = compute_mean_std_runs(results_path, start_index, end_index, 'return_mean')
     env_name = get_env_name(results_path, start_index)

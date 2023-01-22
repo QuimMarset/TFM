@@ -50,3 +50,5 @@ hypergroup: null
 
 
 l2_reg_coef: 0.0001
+
+lr_decay: False

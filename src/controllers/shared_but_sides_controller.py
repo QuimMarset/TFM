@@ -32,12 +32,11 @@ class SharedButSidesMAC:
         side_2_outs, self.side_2_hidden_states = self.side_agent_2(side_2_inputs, self.side_2_hidden_states)
 
         if ep_batch.batch_size > 1:
-            agent_outs = []
-            for i in range(ep_batch.batch_size):
-                agent_outs.append(side_1_outs[i])
-                agent_outs.extend(shared_outs[self.n_shared*i:self.n_shared*i + self.n_shared])
-                agent_outs.append(side_2_outs[i])
-            agent_outs = th.stack(agent_outs)
+            shared_outs = shared_outs.reshape((ep_batch.batch_size, self.n_shared, -1))
+            side_1_outs = side_1_outs.unsqueeze(dim=1)
+            side_2_outs = side_2_outs.unsqueeze(dim=1)
+            agent_outs = th.cat([side_1_outs, shared_outs, side_2_outs], dim=1)
+            agent_outs = agent_outs.view(ep_batch.batch_size * self.n_agents, -1)
         else:
             agent_outs = th.cat([side_1_outs, shared_outs, side_2_outs], dim=0)
 

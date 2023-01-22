@@ -1,13 +1,10 @@
 import datetime
 import os
-import pprint
 import time
 import threading
 import torch as th
 from types import SimpleNamespace as SN
-from utils.logging_results import Logger
 from utils.timehelper import time_left, time_str
-from os.path import dirname, abspath
 
 from learners import REGISTRY as le_REGISTRY
 from runners import REGISTRY as r_REGISTRY
@@ -16,43 +13,18 @@ from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
 
 
-def run(_run, _config, _log):
+def run(config, logger, save_path):
 
     # check args sanity
-    _config = args_sanity_check(_config, _log)
+    config = args_sanity_check(config, logger.console_logger)
 
-    args = SN(**_config)
+    args = SN(**config)
     args.device = "cuda" if args.use_cuda else "cpu"
 
-    # setup loggers
-    logger = Logger(_log)
-
-    _log.info("Experiment Parameters:")
-    experiment_params = pprint.pformat(_config, indent=4, width=1)
-    _log.info("\n\n" + experiment_params + "\n")
-
-    # configure tensorboard logger
-    # unique_token = "{}__{}".format(args.name, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-
-    try:
-        map_name = _config["env_args"]["map_name"]
-    except:
-        map_name = _config["env_args"]["key"]   
-    unique_token = f"{_config['name']}_seed{_config['seed']}_{map_name}_{datetime.datetime.now()}"
-
-    args.unique_token = unique_token
-    if args.use_tensorboard:
-        tb_logs_direc = os.path.join(
-            dirname(dirname(abspath(__file__))), "results", "tb_logs"
-        )
-        tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
-        logger.setup_tb(tb_exp_direc)
-
-    # sacred is on by default
-    logger.setup_sacred(_run)
+    logger.print_config(config)
 
     # Run and train
-    run_sequential(args=args, logger=logger)
+    run_sequential(args, logger, save_path)
 
     # Clean up after finishing
     print("Exiting Main")
@@ -81,7 +53,7 @@ def evaluate_sequential(args, runner):
     runner.close_env()
 
 
-def run_sequential(args, logger):
+def run_sequential(args, logger, save_path):
 
     # Init runner so we can get env info
     runner = r_REGISTRY[args.runner](args=args, logger=logger)
@@ -154,7 +126,7 @@ def run_sequential(args, logger):
             # choose the timestep closest to load_step
             timestep_to_load = min(timesteps, key=lambda x: abs(x - args.load_step))
 
-        model_path = os.path.join(args.checkpoint_path, str('last'))
+        model_path = os.path.join(args.checkpoint_path, str(timestep_to_load))
 
         logger.console_logger.info("Loading model from {}".format(model_path))
         learner.load_models(model_path)
@@ -227,16 +199,14 @@ def run_sequential(args, logger):
             or model_save_time == 0
         ):
             model_save_time = runner.t_env
-            save_path = os.path.join(
-                args.local_results_path, "models", args.unique_token.split()[0], str(runner.t_env)
-            )
-            # "results/models/{}".format(unique_token)
-            os.makedirs(save_path, exist_ok=True)
-            logger.console_logger.info("Saving models to {}".format(save_path))
+
+            save_path_model = os.path.join(save_path, 'models', str(runner.t_env))
+            os.makedirs(save_path_model, exist_ok=True)
+            logger.console_logger.info("Saving models to {}".format(save_path_model))
 
             # learner should handle saving/loading -- delegate actor save/load to mac,
             # use appropriate filenames to do critics, optimizer states
-            learner.save_models(save_path)
+            learner.save_models(save_path_model)
 
         episode += args.batch_size_run
 
@@ -250,12 +220,10 @@ def run_sequential(args, logger):
 
     if args.save_model:
         model_save_time = runner.t_env
-        save_path = os.path.join(args.local_results_path, 
-            "models", args.unique_token.split()[0], 'last')
-        # "results/models/{}".format(unique_token)
-        os.makedirs(save_path, exist_ok=True)
-        logger.console_logger.info("Saving models to {}".format(save_path))
-        learner.save_models(save_path)
+        save_path_model = os.path.join(save_path, 'models', str(runner.t_env))
+        os.makedirs(save_path_model, exist_ok=True)
+        logger.console_logger.info("Saving models to {}".format(save_path_model))
+        learner.save_models(save_path_model)
 
 
 def args_sanity_check(config, _log):

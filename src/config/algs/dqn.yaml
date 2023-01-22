@@ -47,4 +47,6 @@ hidden_dim: 512
 
 mixer:
 
+use_cuda: False
+
 name: "dqn"

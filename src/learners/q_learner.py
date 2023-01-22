@@ -4,6 +4,7 @@ from modules.mixers.vdn import VDNMixer
 from modules.mixers.qmix import QMixer
 import torch as th
 from torch.optim import Adam
+from torch.optim.lr_scheduler import StepLR
 from components.standarize_stream import RunningMeanStd
 
 
@@ -28,6 +29,9 @@ class QLearner:
             self.target_mixer = copy.deepcopy(self.mixer)
 
         self.optimiser = Adam(params=self.params, lr=args.lr, weight_decay=args.l2_reg_coef)
+
+        if args.lr_decay:
+            self.scheduler = StepLR(self.optimiser, step_size=args.lr_decay_steps, gamma=args.lr_decay_gamma)
 
         # a little wasteful to deepcopy (e.g. duplicates action selector), but should work for any MAC
         self.target_mac = copy.deepcopy(mac)
@@ -119,6 +123,8 @@ class QLearner:
         loss.backward()
         grad_norm = th.nn.utils.clip_grad_norm_(self.params, self.args.grad_norm_clip)
         self.optimiser.step()
+        if self.args.lr_decay:
+            self.scheduler.step()
 
         self.training_steps += 1
         if self.args.target_update_interval_or_tau > 1 and (self.training_steps - self.last_target_update_step) / self.args.target_update_interval_or_tau >= 1.0:

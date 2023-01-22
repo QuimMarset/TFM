@@ -1,4 +1,6 @@
 import copy
+
+import numpy as np
 from components.episode_buffer import EpisodeBatch
 from modules.mixers.vdn import VDNMixer
 from modules.mixers.qmix import QMixer
@@ -54,7 +56,8 @@ class QLearnerSingle:
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
 
         # Pick the Q-Values for the actions taken by each agent
-        fold_actions = self.get_action_index(actions).unsqueeze(2)
+        actions = actions.squeeze(dim=-1)
+        fold_actions = self.get_action_index(actions)
         chosen_action_qvals = th.gather(mac_out[:, :-1], dim=2, index=fold_actions)
 
         # Calculate the Q-Values necessary for the target
@@ -134,17 +137,13 @@ class QLearnerSingle:
         self.target_mac.load_models(path)
         self.optimiser.load_state_dict(th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage))
 
-    def get_action_index(self, actions):
-        indices = []
-        for batch_index in range(actions.shape[0]):
-            batch_indices = []
-            for step in range(actions.shape[1]):
-                action = actions[batch_index, step]
-                numeric_action = self.fold_action(action)
-                batch_indices.append(numeric_action)
-            indices.append(batch_indices)
-        return th.tensor(indices)
+    def shifting(self, bitlist):
+        out = 0
+        for bit in bitlist:
+            out = (out << 1) | bit
+        return out
 
-    def fold_action(self, action):
-        action = action[:, 0].tolist()
-        return sum(val * (self.args.n_actions ** idx) for idx, val in enumerate(reversed(action)))
+    def get_action_index(self, actions):
+        int_actions = np.apply_along_axis(self.shifting, -1, actions)
+        int_actions = np.expand_dims(int_actions, axis=-1)
+        return th.tensor(int_actions, dtype=int)
