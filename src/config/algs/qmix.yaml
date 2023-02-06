@@ -9,7 +9,7 @@ evaluation_epsilon: 0
 lr: 0.001 # Learning rate for agents
 optim_alpha: 0.99 # RMSProp alpha
 optim_eps: 0.00001 # RMSProp epsilon
-grad_norm_clip: 100 # Reduce magnitude of gradients above this L2 norm
+grad_norm_clip: 50 # Reduce magnitude of gradients above this L2 norm
 add_value_last_step: True
 
 runner: "episode"
@@ -24,7 +24,7 @@ target_update_interval_or_tau: 200
 save_model: True
 save_model_interval: 5000
 
-#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/qmix/15/models" 
+#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/qmix/51/models" 
 evaluate: False # Evaluate model for test_nepisode episodes and quit (no training)
 #load_step: 997800
 

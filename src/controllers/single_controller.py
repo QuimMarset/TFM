@@ -19,8 +19,9 @@ class SingleAC:
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
-        #avail_actions = ep_batch["avail_actions"][:, t_ep]
         avail_actions = th.tensor([1]*self.args.n_outputs).unsqueeze(0).expand(ep_batch.batch_size, -1)
+        avail_actions = avail_actions.to(self.args.device)
+
         agent_outputs = self.forward(ep_batch, t_ep, test_mode=test_mode)
         chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
         processed_actions = self.process_actions(chosen_actions)
@@ -29,6 +30,10 @@ class SingleAC:
 
     def process_actions(self, chosen_actions):
         binary_repre = np.vectorize(np.binary_repr)
+
+        if self.args.use_cuda:
+            chosen_actions = chosen_actions.cpu()
+
         binary_actions = binary_repre(chosen_actions.numpy(), width=self.n_agents).tolist()
         binary_list = lambda x: [int(digit) for digit in x]
         binary_actions = list(map(binary_list, binary_actions))

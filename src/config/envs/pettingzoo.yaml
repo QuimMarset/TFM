@@ -19,4 +19,4 @@ log_interval: 5000
 runner_log_interval: 5000
 learner_log_interval: 5000
 t_max: 130000
-repetitions: 5 
+repetitions: 6

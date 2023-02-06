@@ -7,16 +7,18 @@ epsilon_finish: 0.05
 epsilon_anneal_time: 100000
 evaluation_epsilon: 0.0
 runner: "episode"
-lr: 0.0011 # Learning rate for agents
+lr: 0.001 # Learning rate for agents
 optim_alpha: 0.99 # RMSProp alpha
 optim_eps: 0.00001 # RMSProp epsilon
-grad_norm_clip: 10 # Reduce magnitude of gradients above this L2 norm
+grad_norm_clip: 100 # Reduce magnitude of gradients above this L2 norm
+
+mac: "non_shared_mac"
 
 buffer_size: 2000
-batch_size: 200 # Number of episodes to train on
+batch_size: 20 # Number of episodes to train on
 
 # update the target network every {} episodes
-target_update_interval_or_tau: 50
+target_update_interval_or_tau: 200
 
 use_tensorboard: False # Log results to tensorboard
 save_model: True
@@ -33,9 +35,15 @@ hidden_dim: 64 # Size of hidden state for default rnn agent
 agent_output_type: "q"
 learner: "q_learner"
 standardise_returns: False
-standardise_rewards: True
+standardise_rewards: False
 double_q: True
 use_rnn: False
 mixer: # Mixer becomes None
+
+use_cuda: True
+
+lr_decay: False
+lr_decay_gamma: 0.6
+lr_decay_steps: 20000
 
 name: "iql"

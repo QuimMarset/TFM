@@ -2,10 +2,9 @@ import copy
 
 import numpy as np
 from components.episode_buffer import EpisodeBatch
-from modules.mixers.vdn import VDNMixer
-from modules.mixers.qmix import QMixer
 import torch as th
 from torch.optim import Adam
+from torch.optim.lr_scheduler import StepLR
 from components.standarize_stream import RunningMeanStd
 
 
@@ -19,6 +18,9 @@ class QLearnerSingle:
         self.last_target_update_episode = 0
 
         self.optimiser = Adam(params=self.params, lr=args.lr)
+
+        if args.lr_decay:
+            self.scheduler = StepLR(self.optimiser, step_size=args.lr_decay_steps, gamma=args.lr_decay_gamma)
 
         # a little wasteful to deepcopy (e.g. duplicates action selector), but should work for any MAC
         self.target_mac = copy.deepcopy(mac)
@@ -99,6 +101,8 @@ class QLearnerSingle:
         loss.backward()
         grad_norm = th.nn.utils.clip_grad_norm_(self.params, self.args.grad_norm_clip)
         self.optimiser.step()
+        if self.args.lr_decay:
+            self.scheduler.step()
 
         self.training_steps += 1
         if self.args.target_update_interval_or_tau > 1 and (self.training_steps - self.last_target_update_step) / self.args.target_update_interval_or_tau >= 1.0:
@@ -144,6 +148,9 @@ class QLearnerSingle:
         return out
 
     def get_action_index(self, actions):
+        if self.args.use_cuda:
+            actions = actions.cpu()
+
         int_actions = np.apply_along_axis(self.shifting, -1, actions)
         int_actions = np.expand_dims(int_actions, axis=-1)
-        return th.tensor(int_actions, dtype=int)
+        return th.tensor(int_actions, dtype=int, device=self.args.device)

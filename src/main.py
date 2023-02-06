@@ -17,7 +17,7 @@ def run_repetition(config, experiment_path):
 if __name__ == '__main__':
 
     env_name = 'pettingzoo'
-    algorithm_name = 'qmix'
+    algorithm_name = 'iql'
 
     env_config = get_env_cofig(env_name)
     alg_config = get_algorithm_config(algorithm_name)
