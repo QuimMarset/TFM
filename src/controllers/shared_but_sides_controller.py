@@ -11,7 +11,8 @@ class SharedButSidesMAC:
         input_shape = self._get_input_shape(scheme)
         self._build_agents(input_shape)
         self.agent_output_type = args.agent_output_type
-        self.action_selector = action_REGISTRY[args.action_selector](args)
+        if args.action_selector is not None:
+            self.action_selector = action_REGISTRY[args.action_selector](args)
         self.hidden_states = None
 
 
@@ -52,14 +53,14 @@ class SharedButSidesMAC:
 
 
     def init_hidden(self, batch_size):
-        self.shared_hidden_states = self.shared_agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_shared, -1)
         self.side_1_hidden_states = self.side_agent_1.init_hidden().unsqueeze(0).expand(batch_size, -1, -1)
+        self.shared_hidden_states = self.shared_agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_shared, -1)
         self.side_2_hidden_states = self.side_agent_2.init_hidden().unsqueeze(0).expand(batch_size, -1, -1)
 
 
     def parameters(self):
         parameters = []
-        for agent in [self.shared_agent, self.side_agent_1, self.side_agent_2]:
+        for agent in [self.side_agent_1, self.shared_agent, self.side_agent_2]:
             parameters.extend(agent.parameters())
         return parameters
 
@@ -70,10 +71,10 @@ class SharedButSidesMAC:
         self.side_agent_2.load_state_dict(other_mac.side_agent_2.state_dict())
 
 
-    def cuda(self):
-        self.shared_agent.cuda()
-        self.side_agent_1.cuda()
-        self.side_agent_2.cuda()
+    def cuda(self, device='cuda'):
+        self.shared_agent.cuda(device=device)
+        self.side_agent_1.cuda(device=device)
+        self.side_agent_2.cuda(device=device)
 
 
     def save_models(self, path):
@@ -96,7 +97,7 @@ class SharedButSidesMAC:
         self.side_agent_2 = agent_REGISTRY[self.args.agent](input_shape, self.args)
 
 
-    def _build_inputs_common(self, batch, t, start_index, end_index, is_shared):
+    def build_inputs_common(self, batch, t, start_index, end_index, is_shared):
         batch_size = batch.batch_size
         inputs = []
         inputs.append(batch['obs'][:, t, start_index:end_index])
@@ -120,15 +121,15 @@ class SharedButSidesMAC:
 
 
     def _build_inputs_shared(self, batch, t):
-        return self._build_inputs_common(batch, t, 1, -1, is_shared=True)
+        return self.build_inputs_common(batch, t, 1, -1, is_shared=True)
 
 
     def _build_inputs_side_1(self, batch, t):
-        return self._build_inputs_common(batch, t, 0, 1, is_shared=False)
+        return self.build_inputs_common(batch, t, 0, 1, is_shared=False)
 
 
     def _build_inputs_side_2(self, batch, t):
-        return self._build_inputs_common(batch, t, -1, self.n_agents, is_shared=False)
+        return self.build_inputs_common(batch, t, -1, self.n_agents, is_shared=False)
 
 
     def _build_inputs(self, batch, t):

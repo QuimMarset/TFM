@@ -52,3 +52,12 @@ class FlattenObservation(ObservationWrapper):
                 for obs_space, obs in zip(self.env.observation_space, observation)
             ]
         )
+
+    def step(self, action):
+        observation, reward, terminated, info = self.env.step(action)
+        return self.observation(observation), reward, terminated, info
+
+    
+    def reset(self, **kwargs):
+        obs = self.env.reset(**kwargs)
+        return self.observation(obs)

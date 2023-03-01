@@ -2,6 +2,8 @@ from envs import REGISTRY as env_REGISTRY
 from functools import partial
 from components.episode_buffer import EpisodeBatch
 import numpy as np
+import torch as th
+import time
 
 
 class EpisodeRunner:
@@ -12,7 +14,13 @@ class EpisodeRunner:
         self.batch_size = self.args.batch_size_run
         assert self.batch_size == 1
 
-        self.env = env_REGISTRY[self.args.env](**self.args.env_args)
+        if self.args.env == "mujoco_multi":
+            env_args_dict = vars(self.args).copy()
+            env_args_dict.pop('env', None)
+            self.env = env_REGISTRY[self.args.env](**env_args_dict)
+        else:
+            self.env = env_REGISTRY[self.args.env](**self.args.env_args)
+        
         self.episode_limit = self.env.episode_limit
         self.t = 0
 
@@ -53,6 +61,7 @@ class EpisodeRunner:
 
         if test_mode and self.args.evaluate:
             self.render()
+            time.sleep(0.03)
 
         terminated = False
         episode_return = 0
@@ -70,7 +79,13 @@ class EpisodeRunner:
 
             # Pass the entire batch of experiences up till now to the agents
             # Receive the actions for each agent at this timestep in a batch of size 1
-            actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
+
+            if getattr(self.args, "action_selector", "epsilon_greedy") == "gumbel":
+                actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env,
+                    test_mode=test_mode, explore=(not test_mode))
+                actions = th.argmax(actions, dim=-1).long()
+            else:
+                actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
 
             reward, terminated, env_info = self.env.step(actions[0])
             episode_return += reward
@@ -93,7 +108,13 @@ class EpisodeRunner:
         self.batch.update(last_data, ts=self.t)
 
         # Select actions in the last stored state
-        actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
+        if getattr(self.args, "action_selector", "epsilon_greedy") == "gumbel":
+            actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, 
+                test_mode=test_mode, explore=(not test_mode))
+            actions = th.argmax(actions, dim=-1).long()
+        else:
+            actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
+
         self.batch.update({"actions": actions}, ts=self.t)
 
         cur_stats = self.test_stats if test_mode else self.train_stats
@@ -108,8 +129,6 @@ class EpisodeRunner:
 
         cur_returns.append(episode_return)
 
-        mean = 0
-
         if test_mode and (len(self.test_returns) == self.args.test_nepisode):
             mean = np.mean(cur_returns[-self.args.test_nepisode:])
             self._log(cur_returns, cur_stats, log_prefix)
@@ -117,12 +136,12 @@ class EpisodeRunner:
         elif self.t_env - self.log_train_stats_t >= self.args.runner_log_interval:
             self._log(cur_returns, cur_stats, log_prefix)
             
-            if hasattr(self.mac.action_selector, "epsilon"):
+            if hasattr(self.mac, 'action_selector') and hasattr(self.mac.action_selector, "epsilon"):
                 self.logger.log_stat("epsilon", self.mac.action_selector.epsilon, self.t_env)
             
             self.log_train_stats_t = self.t_env
 
-        return self.batch, mean
+        return self.batch
 
     def _log(self, returns, stats, prefix):
         self.logger.log_stat(prefix + "return_mean", np.mean(returns), self.t_env)

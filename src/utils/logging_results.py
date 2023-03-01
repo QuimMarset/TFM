@@ -4,6 +4,7 @@ import numpy as np
 import os
 import json
 import pprint
+import torch as th
 
 
 
@@ -47,7 +48,7 @@ class Logger:
 
 
     def print_recent_stats(self):
-        log_str = "Recent Stats | t_env: {:>10} | Episode: {:>8}\n".format(*self.stats["episode"][-1])
+        log_str = "\nRecent Stats | t_env: {:>10} | Episode: {:>8}\n".format(*self.stats["episode"][-1])
         i = 0
         for (k, v) in sorted(self.stats.items()):
             if k == "episode":

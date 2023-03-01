@@ -1,4 +1,5 @@
 import gym
+import numpy as np
 from gym.spaces.box import Box
 from gym.spaces.discrete import Discrete
 import torch
@@ -61,7 +62,9 @@ class PettingZooToGymWrapper(gym.Wrapper):
         for action, agent_name in zip(actions, self.env.agent_names):
             if isinstance(action, torch.Tensor):
                 action = action.item()
-            new_actions[agent_name] = [action] if self.continuous else action
+            elif isinstance(action, np.ndarray):
+                action = action[0]
+            new_actions[agent_name] = action
         return new_actions
 
 

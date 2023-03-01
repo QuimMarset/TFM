@@ -3,9 +3,6 @@ from components.episode_buffer import EpisodeBatch
 from modules.critics.maddpg import MADDPGCritic
 import torch as th
 from torch.optim import RMSprop, Adam
-from controllers.maddpg_controller import gumbel_softmax
-from modules.critics import REGISTRY as critic_registry
-from components.standarize_stream import RunningMeanStd
 
 
 class MADDPGLearner:
@@ -19,106 +16,93 @@ class MADDPGLearner:
         self.target_mac = copy.deepcopy(self.mac)
         self.agent_params = list(mac.parameters())
 
-        self.critic = critic_registry[args.critic_type](scheme, args)
+        self.critic = MADDPGCritic(scheme, args)
         self.target_critic = copy.deepcopy(self.critic)
         self.critic_params = list(self.critic.parameters())
 
-        self.agent_optimiser = Adam(params=self.agent_params, lr=self.args.lr)
-        self.critic_optimiser = Adam(params=self.critic_params, lr=self.args.lr)
+        if getattr(self.args, "optimizer", "rmsprop") == "rmsprop":
+            self.agent_optimiser = RMSprop(params=self.agent_params, lr=args.lr, alpha=args.optim_alpha, eps=args.optim_eps)
+        elif getattr(self.args, "optimizer", "rmsprop") == "adam":
+            self.agent_optimiser = Adam(params=self.agent_params, lr=args.lr, eps=getattr(args, "optimizer_epsilon", 10E-8))
+        else:
+            raise Exception("unknown optimizer {}".format(getattr(self.args, "optimizer", "rmsprop")))
+
+        if getattr(self.args, "optimizer", "rmsprop") == "rmsprop":
+            self.critic_optimiser = RMSprop(params=self.critic_params, lr=args.critic_lr, alpha=args.optim_alpha, eps=args.optim_eps)
+        elif getattr(self.args, "optimizer", "rmsprop") == "adam":
+            self.critic_optimiser = Adam(params=self.critic_params, lr=args.critic_lr, eps=getattr(args, "optimizer_epsilon", 10E-8))
+        else:
+            raise Exception("unknown optimizer {}".format(getattr(self.args, "optimizer", "rmsprop")))
 
         self.log_stats_t = -self.args.learner_log_interval - 1
-
-        self.last_target_update_episode = 0
-
-        device = "cuda" if args.use_cuda else "cpu"
-        if self.args.standardise_returns:
-            self.ret_ms = RunningMeanStd(shape=(self.n_agents,), device=device)
-        if self.args.standardise_rewards:
-            self.rew_ms = RunningMeanStd(shape=(1,), device=device)
 
     def train(self, batch: EpisodeBatch, t_env: int, episode_num: int):
         # Get the relevant quantities
         rewards = batch["reward"][:, :-1]
-        actions = batch["actions_onehot"]
+        actions = batch["actions"][:, :-1]
         terminated = batch["terminated"][:, :-1].float()
-        rewards = rewards.unsqueeze(2).expand(-1, -1, self.n_agents, -1)
-        terminated = terminated.unsqueeze(2).expand(-1, -1, self.n_agents, -1)
-        mask = 1 - terminated
-        batch_size = batch.batch_size
+        mask = batch["filled"][:, :-1].float()
+        mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
 
-        if self.args.standardise_rewards:
-            self.rew_ms.update(rewards)
-            rewards = (rewards - self.rew_ms.mean) / th.sqrt(self.rew_ms.var)
-
-        # Train the critic
-        inputs = self._build_inputs(batch)
-        actions = actions.view(batch_size, -1, 1, self.n_agents * self.n_actions).expand(-1, -1, self.n_agents, -1)
-        q_taken = self.critic(inputs[:, :-1], actions[:, :-1].detach())
-        q_taken = q_taken.view(batch_size, -1, 1)
-
-        # Use the target actor and target critic network to compute the target q
-        self.target_mac.init_hidden(batch.batch_size)
+        # Train the critic batched
         target_actions = []
-        for t in range(1, batch.max_seq_length):
-            agent_target_outs = self.target_mac.target_actions(batch, t)
+        self.target_mac.init_hidden(batch.batch_size)
+        for t in range(batch.max_seq_length):
+            agent_target_outs = self.target_mac.select_actions(batch, t_ep=t, t_env=None, test_mode=True,
+                                                               critic=self.target_critic, target_mac=True)
             target_actions.append(agent_target_outs)
         target_actions = th.stack(target_actions, dim=1)  # Concat over time
 
-        target_actions = target_actions.view(batch_size, -1, 1, self.n_agents * self.n_actions).expand(-1, -1, self.n_agents, -1)
-        target_vals = self.target_critic(inputs[:, 1:], target_actions.detach())
-        target_vals = target_vals.view(batch_size, -1, 1)
+        q_taken = []
+        for t in range(batch.max_seq_length - 1):
+            inputs = self._build_inputs(batch, t=t)
+            critic_out, _ = self.critic(inputs, actions[:, t:t+1].detach())
+            critic_out = critic_out.view(batch.batch_size, -1, 1)
+            q_taken.append(critic_out)
+        q_taken = th.stack(q_taken, dim=1)
 
-        if self.args.standardise_returns:
-            target_vals = target_vals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
+        target_vals = []
+        for t in range(1, batch.max_seq_length):
+            target_inputs = self._build_inputs(batch, t=t)
+            target_critic_out, _ = self.target_critic(target_inputs, target_actions[:, t:t+1].detach())
+            target_critic_out = target_critic_out.view(batch.batch_size, -1, 1)
+            target_vals.append(target_critic_out)
+        target_vals = th.stack(target_vals, dim=1)
 
-        targets = rewards.reshape(-1, 1) + self.args.gamma * (1 - terminated.reshape(-1, 1)) * target_vals.reshape(-1, 1).detach()
+        q_taken = q_taken.view(batch.batch_size, -1, 1)
+        target_vals = target_vals.view(batch.batch_size, -1, 1)
+        targets = rewards.expand_as(target_vals) + self.args.gamma * (1 - terminated.expand_as(target_vals)) * target_vals
 
-        if self.args.standardise_returns:
-            self.ret_ms.update(targets)
-            targets = (targets - self.ret_ms.mean) / th.sqrt(self.ret_ms.var)
-
-        td_error = (q_taken.view(-1, 1) - targets.detach())
-        masked_td_error = td_error * mask.reshape(-1, 1)
-        loss = (masked_td_error ** 2).mean()
+        td_error = (q_taken - targets.detach())
+        mask = mask.expand_as(td_error)
+        masked_td_error = td_error * mask
+        loss = (masked_td_error ** 2).sum() / mask.sum()
 
         self.critic_optimiser.zero_grad()
         loss.backward()
         critic_grad_norm = th.nn.utils.clip_grad_norm_(self.critic_params, self.args.grad_norm_clip)
         self.critic_optimiser.step()
 
-        # Train the actor
-        self.mac.init_hidden(batch_size)
-        pis = []
-        actions = []
-        for t in range(batch.max_seq_length-1):
-            pi = self.mac.forward(batch, t=t).view(batch_size, 1, self.n_agents, -1)
-            actions.append(gumbel_softmax(pi, hard=True))
-            pis.append(pi)
-        actions = th.cat(actions, dim=1)
-        actions = actions.view(batch_size, -1, 1, self.n_agents * self.n_actions).expand(-1, -1, self.n_agents, -1)
+        mac_out = []
+        chosen_action_qvals = []
+        self.mac.init_hidden(batch.batch_size)
+        for t in range(batch.max_seq_length - 1):
+            agent_outs = self.mac.forward(batch, t=t, select_actions=True)["actions"].view(batch.batch_size,
+                                                                                           self.n_agents,
+                                                                                           self.n_actions)
 
-        new_actions = []
-        for i in range(self.n_agents):
-            temp_action = th.split(actions[:, :, i, :], self.n_actions, dim=2)
-            actions_i = []
-            for j in range(self.n_agents):
-                if i == j:
-                    actions_i.append(temp_action[j])
-                else:
-                    actions_i.append(temp_action[j].detach())
-            actions_i = th.cat(actions_i, dim=-1)
-            new_actions.append(actions_i.unsqueeze(2))
-        new_actions = th.cat(new_actions, dim=2)
-
-        pis = th.cat(pis, dim=1)
-        pis[pis==-1e10] = 0
-        pis = pis.reshape(-1, 1)
-        q = self.critic(inputs[:, :-1], new_actions)
-        q = q.reshape(-1, 1)
-        mask = mask.reshape(-1, 1)
+            for idx in range(self.n_agents):
+                tem_joint_act = actions[:, t:t+1].detach().clone().view(batch.batch_size, -1, self.n_actions)
+                tem_joint_act[:, idx] = agent_outs[:, idx]
+                q, _ = self.critic(self._build_inputs(batch, t=t), tem_joint_act)
+                chosen_action_qvals.append(q.view(batch.batch_size, -1, 1))
+            mac_out.append(agent_outs)
+        mac_out = th.stack(mac_out, dim=1)
+        chosen_action_qvals = th.stack(chosen_action_qvals, dim=1)
+        pi = mac_out
 
         # Compute the actor loss
-        pg_loss = -(q * mask).mean() + self.args.reg * (pis ** 2).mean()
+        pg_loss = -chosen_action_qvals.mean() + (pi**2).mean() * 1e-3
 
         # Optimise agents
         self.agent_optimiser.zero_grad()
@@ -126,54 +110,24 @@ class MADDPGLearner:
         agent_grad_norm = th.nn.utils.clip_grad_norm_(self.agent_params, self.args.grad_norm_clip)
         self.agent_optimiser.step()
 
-        if self.args.target_update_interval_or_tau > 1 and (episode_num - self.last_target_update_episode) / self.args.target_update_interval_or_tau >= 1.0:
-            self._update_targets_hard()
-            self.last_target_update_episode = episode_num
-        elif self.args.target_update_interval_or_tau <= 1.0:
-            self._update_targets_soft(self.args.target_update_interval_or_tau)
+        if getattr(self.args, "target_update_mode", "hard") == "hard":
+            self._update_targets()
+        elif getattr(self.args, "target_update_mode", "hard") in ["soft", "exponential_moving_average"]:
+            self._update_targets_soft(tau=getattr(self.args, "target_update_tau", 0.001))
+        else:
+            raise Exception(
+                "unknown target update mode: {}!".format(getattr(self.args, "target_update_mode", "hard")))
 
         if t_env - self.log_stats_t >= self.args.learner_log_interval:
             self.logger.log_stat("critic_loss", loss.item(), t_env)
-            self.logger.log_stat("critic_grad_norm", critic_grad_norm.item(), t_env)
-            self.logger.log_stat("agent_grad_norm", agent_grad_norm.item(), t_env)
+            self.logger.log_stat("critic_grad_norm", critic_grad_norm, t_env)
             mask_elems = mask.sum().item()
             self.logger.log_stat("td_error_abs", masked_td_error.abs().sum().item() / mask_elems, t_env)
-            self.logger.log_stat("q_taken_mean", (q_taken).sum().item() / mask_elems, t_env)
+            self.logger.log_stat("q_taken_mean", (q_taken * mask).sum().item() / mask_elems, t_env)
             self.logger.log_stat("target_mean", targets.sum().item() / mask_elems, t_env)
             self.logger.log_stat("pg_loss", pg_loss.item(), t_env)
             self.logger.log_stat("agent_grad_norm", agent_grad_norm, t_env)
             self.log_stats_t = t_env
-
-    def _build_inputs(self, batch, t=None):
-        bs = batch.batch_size
-        max_t = batch.max_seq_length if t is None else 1
-        ts = slice(None) if t is None else slice(t, t + 1)
-
-        inputs = []
-        inputs.append(batch["state"][:, ts].unsqueeze(2).expand(-1, -1, self.n_agents, -1))
-        if self.args.obs_individual_obs:
-            inputs.append(batch["obs"][:, ts])
-
-        # last actions
-        if self.args.obs_last_action:
-            if t == 0:
-                inputs.append(th.zeros_like(batch["actions_onehot"][:, 0:1]))
-            elif isinstance(t, int):
-                inputs.append(batch["actions_onehot"][:, slice(t - 1, t)])
-            else:
-                last_actions = th.cat([th.zeros_like(batch["actions_onehot"][:, 0:1]), batch["actions_onehot"][:, :-1]],
-                                      dim=1)
-                # last_actions = last_actions.view(bs, max_t, 1, -1).repeat(1, 1, self.n_agents, 1)
-                inputs.append(last_actions)
-        if self.args.obs_agent_id:
-            inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).unsqueeze(0).expand(bs, max_t, -1, -1))
-
-        inputs = th.cat(inputs, dim=-1)
-        return inputs
-
-    def _update_targets_hard(self):
-        self.target_mac.load_state(self.mac)
-        self.target_critic.load_state_dict(self.critic.state_dict())
 
     def _update_targets_soft(self, tau):
         for target_param, param in zip(self.target_mac.parameters(), self.mac.parameters()):
@@ -182,21 +136,44 @@ class MADDPGLearner:
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
 
-    def cuda(self):
-        self.mac.cuda()
-        self.target_mac.cuda()
-        self.critic.cuda()
-        self.target_critic.cuda()
+        if self.args.verbose:
+            self.logger.console_logger.info("Updated all target networks (soft update tau={})".format(tau))
+
+    def _build_inputs(self, batch, t):
+        bs = batch.batch_size
+        inputs = []
+
+        # The centralized critic takes the state input, not observation
+        inputs.append(batch["state"][:, t])
+
+        if self.args.recurrent_critic:
+            if self.args.obs_last_action:
+                if t == 0:
+                    inputs.append(th.zeros_like(batch["actions"][:, t]))
+                else:
+                    inputs.append(batch["actions"][:, t - 1])
+
+        inputs = th.cat([x.reshape(bs, -1) for x in inputs], dim=1)
+        return inputs
+
+    def _update_targets(self):
+        self.target_mac.load_state(self.mac)
+        self.target_critic.load_state_dict(self.critic.state_dict())
+        self.logger.console_logger.info("Updated all target networks")
+
+    def cuda(self, device="cuda:0"):
+        self.mac.cuda(device=device)
+        self.target_mac.cuda(device=device)
+        self.critic.cuda(device=device)
+        self.target_critic.cuda(device=device)
 
     def save_models(self, path):
         self.mac.save_models(path)
-        th.save(self.critic.state_dict(), "{}/critic.th".format(path))
-        th.save(self.agent_optimiser.state_dict(), "{}/agent_opt.th".format(path))
-        th.save(self.critic_optimiser.state_dict(), "{}/critic_opt.th".format(path))
+        th.save(self.agent_optimiser.state_dict(), "{}/opt.th".format(path))
 
     def load_models(self, path):
         self.mac.load_models(path)
         # Not quite right but I don't want to save target networks
         self.target_mac.load_models(path)
         self.agent_optimiser.load_state_dict(
-            th.load("{}/agent_opt.th".format(path), map_location=lambda storage, loc: storage))
+            th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage))

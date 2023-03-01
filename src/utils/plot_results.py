@@ -22,7 +22,10 @@ def get_saved_steps(results_path, index, metric_name):
 
 def get_env_name(results_path, index):
     config = load_results(results_path, index, 'config.json')
-    env_name = config['env_args']['key']
+    if 'key' in config['env_args']:
+        env_name = config['env_args']['key']
+    else:
+        env_name = config['env_args']['scenario']
     env_name = env_name.split('_')[0]
     env_name = env_name[0].upper() + env_name[1:]
     return env_name

@@ -1,0 +1,2 @@
+from .manyagent_swimmer import ManyAgentSwimmerEnv
+from .manyagent_ant import ManyAgentAntEnv

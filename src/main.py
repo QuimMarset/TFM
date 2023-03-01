@@ -16,8 +16,8 @@ def run_repetition(config, experiment_path):
 
 if __name__ == '__main__':
 
-    env_name = 'pettingzoo'
-    algorithm_name = 'iql'
+    env_name = 'pettingzoo_continuous'
+    algorithm_name = 'facmac_pettingzoo'
 
     env_config = get_env_cofig(env_name)
     alg_config = get_algorithm_config(algorithm_name)
@@ -26,7 +26,10 @@ if __name__ == '__main__':
     config = update_default_config_recursive(default_config, env_config)
     config = update_default_config_recursive(config, alg_config)
 
-    env_name = config['env_args']['key']
+    if 'key' in config['env_args']:
+        env_name = config['env_args']['key']
+    else:
+        env_name = config['env_args']['scenario']
     
     experiments_path = get_experiments_folder(env_name, algorithm_name)
     start_index = get_number_subfolders(experiments_path) + 1
@@ -37,5 +40,7 @@ if __name__ == '__main__':
         run_repetition(config, experiment_path)
 
     end_index = get_number_subfolders(experiments_path)
-    plot_train_return_over_runs(experiments_path, start_index, end_index, config['runner_log_interval'])
-    plot_test_return_over_runs(experiments_path, start_index, end_index)
+
+    if not config['evaluate']:
+        plot_train_return_over_runs(experiments_path, start_index, end_index, config['runner_log_interval'])
+        plot_test_return_over_runs(experiments_path, start_index, end_index)

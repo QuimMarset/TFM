@@ -4,6 +4,7 @@ from types import SimpleNamespace as SN
 
 
 class EpisodeBatch:
+
     def __init__(self,
                  scheme,
                  groups,
@@ -100,9 +101,8 @@ class EpisodeBatch:
                 raise KeyError("{} not found in transition or episode data".format(k))
 
             dtype = self.scheme[k].get("dtype", th.float32)
-            if type(v) == th.Tensor:
-                v = v.cpu()
-            v = th.tensor(np.array(v), dtype=dtype, device=self.device)
+            if type(v) == list:
+                v = th.tensor(np.array(v), dtype=dtype, device=self.device)
             self._check_safe_view(v, target[k][_slices])
             target[k][_slices] = v.view_as(target[k][_slices])
 
@@ -205,6 +205,57 @@ class EpisodeBatch:
                                                                                      self.scheme.keys(),
                                                                                      self.groups.keys())
 
+    def share(self):
+        {v.share_memory_() for _, v in self.data.transition_data.items()}
+        {v.share_memory_() for _, v in self.data.episode_data.items()}
+        return self
+
+    def clone(self):
+        self.data.transition_data = {k:v.clone() for k, v in self.data.transition_data.items()}
+        self.data.episode_data = {k: v.clone() for k, v in self.data.episode_data.items()}
+        return self
+
+    def to_df(self):
+        # convert to pandas dataframe so can be viewed easily in pycharm
+        import pandas as pd
+
+        # transition data
+        cols = list(self.data.transition_data.keys())
+        cln_cols = [] # clean for agent dimension
+        cln_data = []
+        for col in cols:
+            if self.data.transition_data[col].dim() == 4:
+                n_agents = self.data.transition_data[col].shape[-2]
+                for aid in range(n_agents):
+                    cln_cols.append(col + "__agent{}".format(aid))
+                    cln_data.append(self.data.transition_data[col][:,:,aid,:].cpu().numpy())
+            else:
+                cln_cols.append(col)
+                cln_data.append(self.data.transition_data[col].cpu().numpy())
+
+        batch_size = self.data.transition_data[cols[0]].shape[0]
+        seq_len = self.data.transition_data[cols[0]].shape[1]
+        transition_pds = []
+        for b in range(batch_size):
+            pds = pd.DataFrame(columns=cln_cols,
+                data=[
+                    [cln_data[j][b, t, :][0] if len(cln_data[j][b, t, :]) == 1 
+                    else cln_data[j][b, t, :] for j, _ in enumerate(cln_cols)] 
+                    for t in range(seq_len)
+                ]
+            )
+            transition_pds.append(pds)
+
+        # episode data
+        episode_pds = []
+        cols = list(self.data.episode_data.keys())
+        if self.data.episode_data != {}:
+            for b in range(self.data.episode_data[cols[0]].shape[0]):
+                pd = pd.DataFrame(columns=cln_cols,
+                                  data=[[cln_data[j][b, :] for j, _ in enumerate(cln_cols)] for t in range(1)])
+                episode_pds.append(pd)
+        return transition_pds, episode_pds
+
 
 class ReplayBuffer(EpisodeBatch):
     def __init__(self, scheme, groups, buffer_size, max_seq_length, preprocess=None, device="cpu"):
@@ -247,4 +298,3 @@ class ReplayBuffer(EpisodeBatch):
                                                                         self.buffer_size,
                                                                         self.scheme.keys(),
                                                                         self.groups.keys())
-

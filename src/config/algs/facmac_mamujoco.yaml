@@ -1,0 +1,91 @@
+# --- FACMAC specific parameters ---
+action_range: ~
+action_selector: ~
+agent: mlp_actor
+obs_agent_id: False
+obs_last_action: True
+agent_output_type: ~
+batch_size_run: 10
+batch_size: 10
+buffer_size: 500
+buffer_warmup: 50
+discretize_actions: False
+double_q: True
+epsilon_decay_mode: ~
+epsilon_start: ~
+epsilon_finish: ~
+epsilon_anneal_time: ~
+exploration_mode: "gaussian"
+start_steps: 10000 # Number of steps for uniform-random action selection, before running real policy. Helps exploration.
+end_noise: 100000
+act_noise: 0.1 # Stddev for Gaussian exploration noise added to policy at training time.
+ou_theta: 0.15 # D
+ou_sigma: 0.2 # D
+ou_noise_scale: 0.3
+final_ou_noise_scale: 0.
+gamma: 0.99
+grad_norm_clip: 5000
+learner: "facmac_learner"
+critic_controller: ""
+learn_interval: 1
+lr: 0.001
+critic_lr: 0.001
+td_lambda: 0.8
+critic_train_reps: 1
+q_nstep: 0  # 0 corresponds to default Q, 1 is r + gamma*Q, etc
+mac: cqmix_mac
+mixer: "qmix"
+mixing_embed_dim: 64
+skip_connections: False
+gated: False
+hypernet_layers: 2
+hypernet_embed: 64
+hyper_initialization_nonzeros: 0
+name: "facmac_mamujoco"
+n_runners: ~
+n_train: 1
+optimizer: adam # D
+optimizer_epsilon: 0.0001 # D
+ou_stop_episode: 100 # training noise goes to zero after this episode
+rnn_hidden_dim: 400
+run_mode: ~
+runner: "parallel"
+runner_scope: "episode"
+target_update_interval: ~
+recurrent_critic: False
+target_update_mode: "soft"
+target_update_tau: 0.001
+test_greedy: ~
+test_interval: 5000
+test_nepisode: 10
+testing_on: True
+t_max: 700000
+save_model: True
+save_model_interval: 5000
+verbose: False
+weight_decay: False
+weight_decay_factor: 0.0001
+env_args:
+  state_last_action: False # critic adds last action internally
+agent_return_logits: False
+q_embed_dim: 1
+
+actor_weight: 10
+
+lr_decay_actor: False
+lr_decay_critic: False
+lr_decay_gamma: 0.95
+lr_decay_steps: 10000
+
+l2_reg_coef: 0.00001
+
+target_update_interval_or_tau: 200
+
+use_cuda: True
+
+standardise_returns: False
+standardise_rewards: False
+
+#load_step: 561000
+#checkpoint_path: "D:/MAI/TFM/TFM/results/HalfCheetah-v4/facmac_mamujoco/13/models" 
+#evaluate: True # Evaluate model for test_nepisode episodes and quit (no training)

@@ -1,5 +1,6 @@
 from pettingzoo.butterfly.pistonball_v6_positions_custom_reward_2_actions import parallel_env
 from gym.envs.registration import EnvSpec
+import numpy as np
 
 
 
@@ -24,7 +25,15 @@ class PistonBallReward2Actions:
 
     
     def step(self, actions):
-        return self.env.step(actions)
+        actions_dict = {}
+
+        if self.continuous:
+            for agent_id in actions:
+                actions_dict[agent_id] = np.array([actions[agent_id]], dtype=np.float32)
+        else:
+            actions_dict = actions
+
+        return self.env.step(actions_dict)
 
 
     def state(self):

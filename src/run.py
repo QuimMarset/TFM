@@ -1,6 +1,7 @@
-import datetime
+import numpy as np
 import os
 import time
+from gym import spaces
 import threading
 import torch as th
 from types import SimpleNamespace as SN
@@ -64,30 +65,133 @@ def run_sequential(args, logger, save_path):
     args.n_actions = env_info["n_actions"]
     args.state_shape = env_info["state_shape"]
 
-    # Default/Base scheme
-    scheme = {
-        "state": {"vshape": env_info["state_shape"]},
-        "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
-        "actions": {"vshape": (1,), "group": "agents", "dtype": th.long},
-        "avail_actions": {
-            "vshape": (env_info["n_actions"],),
-            "group": "agents",
-            "dtype": th.int,
-        },
-        "reward": {"vshape": (1,)},
-        "terminated": {"vshape": (1,), "dtype": th.uint8},
-    }
-    groups = {"agents": args.n_agents}
-    preprocess = {"actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])}
+    if "action_spaces" in env_info:
+        args.action_spaces = env_info["action_spaces"]
 
-    buffer = ReplayBuffer(
-        scheme,
-        groups,
-        args.buffer_size,
-        env_info["episode_limit"] + 1,
-        preprocess=preprocess,
-        device="cpu" if args.buffer_cpu_only else args.device,
-    )
+    # Set up schemes and groups here
+    if "mujoco_multi" not in args.env:
+        env_info = runner.get_env_info()
+        args.n_agents = env_info["n_agents"]
+        args.n_actions = env_info["n_actions"]
+        args.state_shape = env_info["state_shape"]
+        args.obs_shape = env_info["obs_shape"]
+
+        if env_info['action_spaces'][0].dtype == np.float32:
+            actions_dtype = th.float
+        else:
+            actions_dtype = th.long
+
+        scheme = {
+            "state": {"vshape": env_info["state_shape"]},
+            "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
+            "actions": {"vshape": (1,), "group": "agents", "dtype": actions_dtype},
+            "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
+            "reward": {"vshape": (1,)},
+            "terminated": {"vshape": (1,), "dtype": th.uint8},
+        }
+        groups = {
+            "agents": args.n_agents
+        }
+
+        if args.env_args['continuous']:
+            preprocess = {}
+        else:
+            preprocess = {
+                "actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])
+            }
+
+    else:
+        env_info = runner.get_env_info()
+        args.n_agents = env_info["n_agents"]
+        args.n_actions = env_info["n_actions"]
+        args.state_shape = env_info["state_shape"]
+        args.obs_shape = env_info["obs_shape"]
+        args.action_spaces = env_info["action_spaces"]
+        args.actions_dtype = env_info["actions_dtype"]
+        args.normalise_actions = env_info.get("normalise_actions", False) # if true, action vectors need to sum to one
+
+        ttype = th.FloatTensor if not args.use_cuda else th.cuda.FloatTensor
+        mult_coef_tensor = ttype(args.n_agents, args.n_actions)
+        action_min_tensor = ttype(args.n_agents, args.n_actions)
+        
+        if all([isinstance(act_space, spaces.Box) for act_space in args.action_spaces]):
+            for _aid in range(args.n_agents):
+                for _actid in range(args.action_spaces[_aid].shape[0]):
+                    _action_min = args.action_spaces[_aid].low[_actid]
+                    _action_max = args.action_spaces[_aid].high[_actid]
+                    mult_coef_tensor[_aid, _actid] = (_action_max - _action_min).item()
+                    action_min_tensor[_aid, _actid] = _action_min.item()
+        
+        elif all([isinstance(act_space, spaces.Tuple) for act_space in args.action_spaces]):
+            for _aid in range(args.n_agents):
+                for _actid in range(args.action_spaces[_aid].spaces[0].shape[0]):
+                    _action_min = args.action_spaces[_aid].spaces[0].low[_actid]
+                    _action_max = args.action_spaces[_aid].spaces[0].high[_actid]
+                    mult_coef_tensor[_aid, _actid] = (_action_max - _action_min).item()
+                    action_min_tensor[_aid, _actid] = _action_min.item()
+                for _actid in range(args.action_spaces[_aid].spaces[1].shape[0]):
+                    _action_min = args.action_spaces[_aid].spaces[1].low[_actid]
+                    _action_max = args.action_spaces[_aid].spaces[1].high[_actid]
+                    tmp_idx = _actid + args.action_spaces[_aid].spaces[0].shape[0]
+                    mult_coef_tensor[_aid, tmp_idx] = (_action_max - _action_min).item()
+                    action_min_tensor[_aid, tmp_idx] = _action_min.item()
+
+        args.actions2unit_coef = mult_coef_tensor
+        args.actions2unit_coef_cpu = mult_coef_tensor.cpu()
+        args.actions2unit_coef_numpy = mult_coef_tensor.cpu().numpy()
+        args.actions_min = action_min_tensor
+        args.actions_min_cpu = action_min_tensor.cpu()
+        args.actions_min_numpy = action_min_tensor.cpu().numpy()
+
+        def actions_to_unit_box(actions):
+            if isinstance(actions, np.ndarray):
+                return args.actions2unit_coef_numpy * actions + args.actions_min_numpy
+            elif actions.is_cuda:
+                return args.actions2unit_coef * actions + args.actions_min
+            else:
+                return args.args.actions2unit_coef_cpu  * actions + args.actions_min_cpu
+
+        def actions_from_unit_box(actions):
+            if isinstance(actions, np.ndarray):
+                return th.div((actions - args.actions_min_numpy), args.actions2unit_coef_numpy)
+            elif actions.is_cuda:
+                return th.div((actions - args.actions_min), args.actions2unit_coef)
+            else:
+                return th.div((actions - args.actions_min_cpu), args.actions2unit_coef_cpu)
+
+        # make conversion functions globally available
+        args.actions2unit = actions_to_unit_box
+        args.unit2actions = actions_from_unit_box
+
+        action_dtype = th.long if not args.actions_dtype == np.float32 else th.float
+        if all([isinstance(act_space, spaces.Box) for act_space in args.action_spaces]):
+            actions_vshape = 1 if not args.actions_dtype == np.float32 else max([i.shape[0] for i in args.action_spaces])
+        elif all([isinstance(act_space, spaces.Tuple) for act_space in args.action_spaces]):
+            actions_vshape = 1 if not args.actions_dtype == np.float32 else \
+                                           max([i.spaces[0].shape[0] + i.spaces[1].shape[0] for i in args.action_spaces])
+        # Default/Base scheme
+        scheme = {
+            "state": {"vshape": env_info["state_shape"]},
+            "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
+            "actions": {"vshape": (actions_vshape,), "group": "agents", "dtype": action_dtype},
+            "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
+            "reward": {"vshape": (1,)},
+            "terminated": {"vshape": (1,), "dtype": th.uint8},
+        }
+        groups = {
+            "agents": args.n_agents
+        }
+
+        if not args.actions_dtype == np.float32:
+            preprocess = {
+                "actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])
+            }
+        else:
+            preprocess = {}
+
+
+    buffer = ReplayBuffer( scheme, groups, args.buffer_size, env_info["episode_limit"] + 1, 
+        preprocess=preprocess, device="cpu" if args.buffer_cpu_only else args.device)
 
     # Setup multiagent controller here
     mac = mac_REGISTRY[args.mac](buffer.scheme, groups, args)
@@ -153,21 +257,27 @@ def run_sequential(args, logger, save_path):
 
     while runner.t_env <= args.t_max:
 
-        # Run for a whole episode at a time
-        episode_batch, _ = runner.run(test_mode=False)
-        buffer.insert_episode_batch(episode_batch)
+        if getattr(args, "runner_scope", "episodic") == "episodic":
 
-        if buffer.can_sample(args.batch_size):
-            episode_sample = buffer.sample(args.batch_size)
+            # Run for a whole episode at a time
+            episode_batch = runner.run(test_mode=False)
+            buffer.insert_episode_batch(episode_batch)
 
-            # Truncate batch to only filled timesteps
-            max_ep_t = episode_sample.max_t_filled()
-            episode_sample = episode_sample[:, :max_ep_t]
+            if buffer.can_sample(args.batch_size):
+                episode_sample = buffer.sample(args.batch_size)
 
-            if episode_sample.device != args.device:
-                episode_sample.to(args.device)
+                # Truncate batch to only filled timesteps
+                max_ep_t = episode_sample.max_t_filled()
+                episode_sample = episode_sample[:, :max_ep_t]
 
-            learner.train(episode_sample, runner.t_env, episode)
+                if episode_sample.device != args.device:
+                    episode_sample.to(args.device)
+
+                learner.train(episode_sample, runner.t_env, episode)
+
+        else:
+            # transition
+            runner.run(test_mode=False, buffer=buffer, learner=learner, episode=episode)
 
         # Execute test runs once in a while
         n_test_runs = max(1, args.test_nepisode // runner.batch_size)
@@ -187,12 +297,12 @@ def run_sequential(args, logger, save_path):
             last_time = time.time()
 
             last_test_T = runner.t_env
+                        
             for _ in range(n_test_runs):
-                _, test_return_mean = runner.run(test_mode=True)
-            
-            #if test_return_mean >= args.stop_return:
-            #    logger.console_logger.info("Stopped after reaching the desired average return")
-            #    break
+                if getattr(args, "runner_scope", "episodic") == "episodic":
+                    runner.run(test_mode=True)
+                else:
+                    runner.run(test_mode=True, buffer=buffer, learner=learner, episode=episode)
 
         if args.save_model and (
             runner.t_env - model_save_time >= args.save_model_interval
