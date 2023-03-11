@@ -11,6 +11,7 @@ from envs.petting_zoo.wrappers.pettingzoo_to_gym_wrapper import PettingZooToGymW
 
 
 def piston_ball_creation(**kwargs):
+    # Uses positions (from both the pistons and the ball) instead of image frames
     env = PistonBall(**kwargs)
     env = PettingZooToGymWrapper(env)
     return env

@@ -1,4 +1,4 @@
-from pettingzoo.butterfly.pistonball_v6_positions_custom_reward_2_actions import parallel_env
+from envs.petting_zoo.pistonball_mods.pistonball_positions_custom_reward_2_actions import parallel_env
 from gym.envs.registration import EnvSpec
 import numpy as np
 

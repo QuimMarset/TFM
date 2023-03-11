@@ -10,9 +10,7 @@ class CQMixMACSides(SharedButSidesMAC):
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False, explore_agent_ids=None):
 
-        forward_out = self.forward(ep_batch[bs], t_ep)
-        
-        chosen_actions = forward_out["actions"] # just to make sure detach    
+        chosen_actions = self.forward(ep_batch[bs], t_ep)
         chosen_actions = chosen_actions.view(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).detach()
         
         # Now do appropriate noising
@@ -80,19 +78,9 @@ class CQMixMACSides(SharedButSidesMAC):
     def forward(self, ep_batch, t):
         shared_inputs, side_1_inputs, side_2_inputs = self._build_inputs(ep_batch, t)
 
-        shared_outs = self.shared_agent(shared_inputs, self.shared_hidden_states)
-        side_1_outs = self.side_agent_1(side_1_inputs, self.side_1_hidden_states)
-        side_2_outs = self.side_agent_2(side_2_inputs, self.side_2_hidden_states)
-
-        self.shared_hidden_states = shared_outs['hidden_state']
-        self.side_1_hidden_states = side_1_outs['hidden_state']
-        self.side_2_hidden_states = side_2_outs['hidden_state']
-
-        shared_outs = shared_outs['actions']
-        side_1_outs = side_1_outs['actions']
-        side_2_outs = side_2_outs['actions']
-
-        output = {}
+        shared_outs, self.shared_hidden_states = self.shared_agent(shared_inputs, self.shared_hidden_states)
+        side_1_outs, self.side_1_hidden_states = self.side_agent_1(side_1_inputs, self.side_1_hidden_states)
+        side_2_outs, self.side_2_hidden_states = self.side_agent_2(side_2_inputs, self.side_2_hidden_states)
 
         if ep_batch.batch_size > 1:
             shared_outs = shared_outs.reshape((ep_batch.batch_size, self.n_shared, -1))
@@ -103,8 +91,7 @@ class CQMixMACSides(SharedButSidesMAC):
         else:
             agent_outs = th.cat([side_1_outs, shared_outs, side_2_outs], dim=0)
 
-        output['actions'] = agent_outs
-        return output
+        return agent_outs
 
 
     def build_inputs_common(self, batch, t, start_index, end_index, is_shared):

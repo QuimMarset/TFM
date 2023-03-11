@@ -2,8 +2,8 @@ env: "mujoco_multi"
 
 env_args:
     episode_limit: 1000
-    scenario: "Humanoid-v4"
-    agent_conf: "9|8"
+    scenario: "manyagent_swimmer"
+    agent_conf: "10x2"
     agent_obsk: 0
     obs_add_global_pos: False
     custom_args:
@@ -13,3 +13,8 @@ env_args:
 t_max: 700000
 
 repetitions: 1
+
+test_interval: 5000
+log_interval: 5000
+runner_log_interval: 5000
+learner_log_interval: 5000

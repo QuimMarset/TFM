@@ -1,0 +1,59 @@
+# --- MADDPG specific parameters ---
+action_range: ~
+action_selector: ~
+agent: "mlp_actor"
+obs_agent_id: True
+obs_last_action: True
+agent_output_type: ~
+batch_size_run: 1
+batch_size: 20
+buffer_size: 1000
+buffer_warmup: 100
+discretize_actions: False
+double_q: False
+gamma: 0.99
+grad_norm_clip: 0.5
+learner: "maddpg_learner"
+mac: "maddpg_continuous_mac"
+critic_type: "maddpg_critic"
+learn_interval: 1
+lr: 0.05
+critic_lr: 0.05
+td_lambda: 0.8
+critic_train_reps: 1
+q_nstep: 0  # 0 corresponds to default Q, 1 is r + gamma*Q, etc
+name: "maddpg"
+n_runners: ~
+n_train: 1
+optimizer_epsilon: 0.01 # D
+rnn_hidden_dim: 64
+run_mode: ~
+runner: "episode"
+runner_scope: "episodic"
+target_update_interval: ~
+recurrent_critic: False
+target_update_mode: "soft"
+target_update_tau: 0.005
+test_greedy: ~
+test_interval: 50000000
+test_nepisode: 100
+testing_on: True
+t_max: 500000
+save_model: True
+save_model_interval: 10000
+verbose: False
+weight_decay: True
+weight_decay_factor: 0.0001
+env_args:
+  state_last_action: False # critic adds last action internally
+agent_return_logits: False
+q_embed_dim: 1
+
+obs_individual_obs: False
+
+target_update_interval_or_tau: 200
+
+use_cuda: True
+
+standardise_returns: False
+standardise_rewards: False

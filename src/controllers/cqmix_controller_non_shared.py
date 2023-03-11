@@ -9,8 +9,7 @@ class CQMixNonSharedMAC(NonSharedMAC):
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False, explore_agent_ids=None):
 
-        forward_out = self.forward(ep_batch[bs], t_ep)
-        chosen_actions = forward_out["actions"] # just to make sure detach    
+        chosen_actions = self.forward(ep_batch[bs], t_ep)
         chosen_actions = chosen_actions.view(ep_batch[bs].batch_size, self.n_agents, self.args.n_actions).detach()
         
         exploration_mode = getattr(self.args, "exploration_mode", "gaussian")
@@ -76,9 +75,9 @@ class CQMixNonSharedMAC(NonSharedMAC):
         hidden_states = []
 
         for i, agent in enumerate(self.agents):
-            agent_out = agent(agent_inputs[:, i], self.hidden_states[i])
-            agent_outs.append(agent_out['actions'])
-            hidden_states.append(agent_out['hidden_state'])
+            actions_i, hidden_states_i = agent(agent_inputs[:, i], self.hidden_states[i])
+            agent_outs.append(actions_i)
+            hidden_states.append(hidden_states_i)
 
         self.hidden_states = hidden_states
         agent_outs = th.stack(agent_outs).squeeze(1)
@@ -89,9 +88,7 @@ class CQMixNonSharedMAC(NonSharedMAC):
                 agent_outs = ((1 - self.action_selector.epsilon) * agent_outs
                     + th.ones_like(agent_outs) * self.action_selector.epsilon/agent_outs.size(-1))
 
-        return {
-            'actions': agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
-        }
+        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
 
     
     def _build_inputs(self, batch, t):

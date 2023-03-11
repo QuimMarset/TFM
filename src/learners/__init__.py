@@ -8,7 +8,6 @@ from .q_learner_single import QLearnerSingle
 from .cq_learner import CQLearner
 from .facmac_learner import FACMACLearner
 from .facmac_learner_discrete import FACMACDiscreteLearner
-from .facmac_learner_2 import FACMACLearnerRE
 from .maddpg_learner import MADDPGLearner
 
 REGISTRY = {}
@@ -22,6 +21,5 @@ REGISTRY["ppo_learner"] = PPOLearner
 REGISTRY['q_learner_single'] = QLearnerSingle
 REGISTRY["maddpg_learner"] = MADDPGLearner
 REGISTRY["facmac_learner"] = FACMACLearner
-REGISTRY["facmac_learner_RE"] = FACMACLearnerRE
 REGISTRY["facmac_learner_discrete"] = FACMACDiscreteLearner
 REGISTRY["cq_learner"] = CQLearner

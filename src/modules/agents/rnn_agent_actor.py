@@ -21,4 +21,4 @@ class RNNActorAgent(nn.Module):
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
         h = self.rnn(x, h_in)
         actions = th.tanh(self.fc2(h))
-        return {"actions": actions, "hidden_state": h}
+        return actions, h

@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     end_index = get_number_subfolders(experiments_path)
 
-    if not config['evaluate']:
-        plot_train_return_over_runs(experiments_path, start_index, end_index, config['runner_log_interval'])
-        plot_test_return_over_runs(experiments_path, start_index, end_index)
-        plot_test_episode_length_over_runs(experiments_path, start_index, end_index)
+    #if not config['evaluate']:
+    #    plot_train_return_over_runs(experiments_path, start_index, end_index, config['runner_log_interval'])
+    #    plot_test_return_over_runs(experiments_path, start_index, end_index)
+    #    plot_test_episode_length_over_runs(experiments_path, start_index, end_index)
