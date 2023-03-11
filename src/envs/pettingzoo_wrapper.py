@@ -36,7 +36,7 @@ def env_creator(key, **kwargs):
     elif key == 'pistonball_reward_2_actions':
         return piston_ball_custom_reward_2_actions_creation(**kwargs)
     else:
-        raise NotImplementedError(f'{key} not yet implemented in EPyMARL')
+        raise NotImplementedError(f'{key} not yet implemented')
 
 
 
@@ -106,8 +106,6 @@ class PettingZooWrapper(MultiAgentEnv):
 
 
     def get_total_actions(self):
-        """ Returns the total number of actions an agent could ever take """
-        # TODO: This is only suitable for a discrete 1 dimensional action space for each agent
         return flatdim(self.longest_action_space)
 
 
@@ -180,7 +178,6 @@ class PettingZooContinuousWrapper(PettingZooWrapper):
 
 
     def get_avail_agent_actions(self, agent_id):
-        """ Returns the available actions for agent_id """
         return np.ones(shape=(self.n_actions,))
 
 

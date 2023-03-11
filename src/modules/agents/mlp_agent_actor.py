@@ -18,11 +18,11 @@ class MLPActorAgent(nn.Module):
         # make hidden states on same device as model
         return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
 
-    def forward(self, inputs, hidden_state, actions=None):
+    def forward(self, inputs, hidden_state=None, actions=None):
         x = F.relu(self.fc1(inputs))
         x = F.relu(self.fc2(x))
         if self.agent_return_logits:
             actions = self.fc3(x)
         else:
-            actions = F.tanh(self.fc3(x))
-        return {"actions": actions, "hidden_state": hidden_state}
+            actions = th.tanh(self.fc3(x))
+        return actions, hidden_state

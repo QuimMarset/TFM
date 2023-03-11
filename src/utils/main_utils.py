@@ -28,10 +28,10 @@ def get_default_config():
     return read_yaml(default_config_path)
 
 
-def update_default_config_recursive(default_config, loaded_config):
+def update_config_recursive(default_config, loaded_config):
     for key, value in loaded_config.items():
         if isinstance(value, collections.Mapping):
-            default_config[key] = update_default_config_recursive(default_config.get(key, {}), value)
+            default_config[key] = update_config_recursive(default_config.get(key, {}), value)
         else:
             default_config[key] = value
     return default_config
@@ -59,3 +59,25 @@ def set_random_seed():
     np.random.seed(seed)
     torch.manual_seed(seed)
     return seed
+
+
+def set_correct_type(string_value):
+    if string_value.isnumeric():
+        return int(string_value)
+    elif '.' in string_value and string_value.replace('.', '').isnumeric():
+        return float(string_value)
+    elif string_value == 'True':
+        return True
+    elif string_value == 'False':
+        return False
+    return string_value
+
+
+def input_args_to_dict(input_args):
+    args_dict = {}
+    for arg in input_args[1:]:
+        key, value = arg.split("=")
+        if len(key.split("--")) > 1:
+            key = key.split('--')[1]
+        args_dict[key] = set_correct_type(value)
+    return args_dict

@@ -72,9 +72,8 @@ class FACMACLearner:
         target_actions = []
         self.target_mac.init_hidden(batch.batch_size)
         for t in range(batch.max_seq_length):
-            agent_target_outs = self.target_mac.select_actions(batch, t_ep=t, t_env=None, test_mode=True,
-                                                               critic=self.target_critic, target_mac=True)
-            target_actions.append(agent_target_outs)
+            agent_target_outs = self.target_mac.select_actions(batch, t_ep=t, test_mode=True)
+            target_actions.append(agent_target_outs.detach())
         target_actions = th.stack(target_actions, dim=1)  # Concat over time
 
         q_taken = []
@@ -128,15 +127,17 @@ class FACMACLearner:
         self.mac.init_hidden(batch.batch_size)
         self.critic.init_hidden(batch.batch_size)
         for t in range(batch.max_seq_length):
-            agent_outs = self.mac.forward(batch, t=t, select_actions=True)["actions"].view(batch.batch_size,
-                                                                                           self.n_agents,
-                                                                                           self.n_actions)
+
+            agent_outs, log_probs = self.mac.select_actions_with_log_probs(batch, t)
+
             q, self.critic.hidden_states = self.critic(self._build_inputs(batch, t=t), agent_outs,
                                                        self.critic.hidden_states)
             if self.mixer is not None:
                 q = self.mixer(q.view(batch.batch_size, -1, 1), batch["state"][:, t:t+1])
-            mac_out.append(agent_outs)
+            
+            mac_out.append(log_probs)
             chosen_action_qvals.append(q)
+            
         mac_out = th.stack(mac_out[:-1], dim=1)
         chosen_action_qvals = th.stack(chosen_action_qvals[:-1], dim=1)
         pi = mac_out

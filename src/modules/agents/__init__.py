@@ -6,6 +6,7 @@ from .linear_agent import LinearAgent
 from .mlp_agent_actor import MLPActorAgent
 from .rnn_agent_actor import RNNActorAgent
 from .comix_agent import CEMAgent, CEMRecurrentAgent
+from .continuous_stochastic_agent import MLPContinuousStochasticActor
 
 REGISTRY["rnn"] = RNNAgent
 REGISTRY["rnn_ns"] = RNNNSAgent
@@ -14,3 +15,4 @@ REGISTRY['rnn_actor'] = RNNActorAgent
 REGISTRY['mlp_actor'] = MLPActorAgent
 REGISTRY["cem"] = CEMAgent
 REGISTRY["cemrnn"] = CEMRecurrentAgent
+REGISTRY["mlp_continuous_stochastic"] = MLPContinuousStochasticActor

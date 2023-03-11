@@ -43,7 +43,7 @@ class CQMixNonSharedMAC(NonSharedMAC):
                                 x = chosen_actions[:, idx].clone().zero_()
                                 chosen_actions[:, idx] += act_noise * x.clone().normal_()
                 else:
-                    if self.args.env_args.get("scenario_name", None) is not None and self.args.env_args["scenario_name"] in ["Humanoid-v4", "HumanoidStandup-v4"]:
+                    if self.args.env_args.get("scenario", None) is not None and self.args.env_args["scenario"] in ["Humanoid-v4", "HumanoidStandup-v4"]:
                         chosen_actions = th.from_numpy(np.array([[self.args.action_spaces[0].sample() for i in range(self.n_agents)] 
                             for _ in range(ep_batch[bs].batch_size)])).float().to(device=ep_batch.device)
                     else:

@@ -64,15 +64,37 @@ def plot_test_return_over_runs(results_path, start_index, end_index):
     save_path = os.path.join(results_path, str(end_index))
     print(save_path)
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     plt.plot(steps, means, label='Mean', color='orange')
     plt.fill_between(steps, means-stds, means+stds, alpha=0.3, label='Mean+-Std')
-    plt.title(f'Last 100 episodes average test return on {env_name} using {algorithm} over {total_steps} steps')
+    plt.title(f'100 episodes average test return on {env_name} using {algorithm} over {total_steps} steps')
     plt.xlabel('Step')
     plt.ylabel('Test Episode Return')
     plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join(save_path, 'episode_test_return.png'))
+    plt.close()
+
+
+def plot_test_episode_length_over_runs(results_path, start_index, end_index):
+    sns.set(style="whitegrid")
+    steps = get_saved_steps(results_path, start_index, 'test_ep_length_mean')
+    total_steps = get_total_steps(results_path, start_index)
+    means, stds = compute_mean_std_runs(results_path, start_index, end_index, 'test_ep_length_mean')
+    env_name = get_env_name(results_path, start_index)
+    algorithm = get_algorithm_name(results_path, start_index)
+    save_path = os.path.join(results_path, str(end_index))
+    print(save_path)
+
+    plt.figure(figsize=(11, 6))
+    plt.plot(steps, means, label='Mean', color='orange')
+    plt.fill_between(steps, means-stds, means+stds, alpha=0.3, label='Mean+-Std')
+    plt.title(f'100 episodes average episode length on {env_name} using {algorithm} over {total_steps} steps')
+    plt.xlabel('Step')
+    plt.ylabel('Test Episode Return')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_path, 'episode_test_ep_length.png'))
     plt.close()
 
 
@@ -86,7 +108,7 @@ def plot_train_return_over_runs(results_path, start_index, end_index, logger_ste
     save_path = os.path.join(results_path, str(end_index))
     print(save_path)
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     plt.plot(steps, means, label='Mean', color='orange')
     plt.fill_between(steps, means-stds, means+stds, alpha=0.3, label='Mean+-Std')
     plt.title(f'Last {logger_steps} steps average return on {env_name} using {algorithm} over {total_steps} steps')
