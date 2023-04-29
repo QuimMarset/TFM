@@ -51,14 +51,14 @@ class _GymmaWrapper(MultiAgentEnv):
         """ Returns observation for agent_id """
         raise self._obs[agent_id]
 
-    def get_obs_size(self):
+    def get_obs_shape(self):
         """ Returns the shape of the observation """
         return flatdim(self.longest_observation_space)
 
     def get_state(self):
         return np.concatenate(self._obs, axis=0).astype(np.float32)
 
-    def get_state_size(self):
+    def get_state_shape(self):
         """ Returns the shape of the state"""
         return self.n_agents * flatdim(self.longest_observation_space)
 
@@ -66,31 +66,18 @@ class _GymmaWrapper(MultiAgentEnv):
         """ Returns observation for agent_id """
         raise self._obs[agent_id]
 
-    def get_obs_size(self):
+    def get_obs_shape(self):
         """ Returns the shape of the observation """
         return flatdim(self.longest_observation_space)
 
     def get_state(self):
         return np.concatenate(self._obs, axis=0).astype(np.float32)
 
-    def get_state_size(self):
+    def get_state_shape(self):
         """ Returns the shape of the state"""
         return self.n_agents * flatdim(self.longest_observation_space)
 
-    def get_avail_actions(self):
-        avail_actions = []
-        for agent_id in range(self.n_agents):
-            avail_agent = self.get_avail_agent_actions(agent_id)
-            avail_actions.append(avail_agent)
-        return avail_actions
-
-    def get_avail_agent_actions(self, agent_id):
-        """ Returns the available actions for agent_id """
-        valid = flatdim(self._env.action_space[agent_id]) * [1]
-        invalid = [0] * (self.longest_action_space.n - len(valid))
-        return valid + invalid
-
-    def get_total_actions(self):
+    def get_number_of_possible_actions(self):
         """ Returns the total number of actions an agent could ever take """
         # TODO: This is only suitable for a discrete 1 dimensional action space for each agent
         return flatdim(self.longest_action_space)

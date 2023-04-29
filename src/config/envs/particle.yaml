@@ -1,0 +1,19 @@
+env: "particle"
+
+env_args:
+  benchmark: False
+  episode_limit: 25
+  scenario: "continuous_pred_prey_3a"
+  state_mode: "all"
+  agent_view_radius: 1.5
+  score_function: "min"
+  partial_obs: True
+
+
+log_interval: 10000
+runner_log_interval: 10000
+learner_log_interval: 10000
+test_interval: 10000
+test_nepisode: 100
+
+repetitions: 5

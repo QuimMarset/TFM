@@ -1,7 +1,7 @@
 env: "pettingzoo"
 
 env_args:
-  key: 'pistonball_reward_2_actions'
+  key: 'pistonball_positions_global_2_actions'
   pretrained_wrapper: null
   continuous: False
   num_pistons: 15
@@ -10,13 +10,9 @@ env_args:
   alpha: 0.2
 
 
-test_greedy: True
+test_interval: 1000
 test_nepisode: 100
-stop_return: 150
-
-test_interval: 5000
-log_interval: 5000
-runner_log_interval: 5000
-learner_log_interval: 5000
-t_max: 130000
-repetitions: 6
+log_interval: 1000
+runner_log_interval: 1000
+learner_log_interval: 1000
+repetitions: 5

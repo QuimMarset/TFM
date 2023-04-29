@@ -1,0 +1,67 @@
+# --- FACMAC specific parameters ---
+
+name: "facmac_distribution"
+
+seed: 1412
+
+obs_agent_id: True
+obs_last_action: True
+critic_obs_agent_id: False
+critic_obs_last_action: True
+
+runner: "parallel"
+batch_size_run: 8
+batch_size: 50
+buffer_size: 4000
+t_max: 1000000
+
+double_q: False
+
+exploration_mode: "gaussian"
+start_steps: 200000
+stop_noise_step: 400000
+act_noise: 0.2
+ou_theta: 0.15
+ou_sigma: 0.2
+ou_noise_scale: 0.3
+
+gamma: 0.99
+
+lr: 0.001
+critic_lr: 0.001
+lr_decay_actor: False
+lr_decay_critic: False
+lr_decay_gamma: 0.9
+lr_decay_episodes: 20
+
+grad_norm_clip_actor: 50
+grad_norm_clip_critic: 50
+
+optimizer_epsilon: 0.01
+
+learner: "facmac_distribution_learner"
+mac: "facmac_distribution_mac"
+critic_controller: "factorized_controller"
+agent: "rnn_mean_log_std"
+critic: "rnn"
+mixer: "qmix"
+
+skip_connections: False
+gated: False
+
+mixing_embed_dim: 128
+hypernet_layers: 2
+hypernet_embed: 64
+hyper_initialization_nonzeros: 0
+hidden_dim: 128
+
+target_update_mode: "soft"
+target_update_tau: 0.005
+hard_update_interval: 200
+
+save_model: True
+save_model_interval: 50000
+
+#load_step: 561000
+#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/facmac_pettingzoo/196/models" 
+#evaluate: True # Evaluate model for test_nepisode episodes and quit (no training)

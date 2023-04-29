@@ -24,7 +24,7 @@ class QLearner:
         self.params += list(self.mixer.parameters())
         self.target_mixer = copy.deepcopy(self.mixer)
 
-        self.optimiser = RMSprop(params=self.params, lr=args.lr, alpha=args.optim_alpha, eps=args.optim_eps)
+        self.optimiser = RMSprop(params=self.params, lr=args.lr, alpha=args.optim_alpha, eps=args.optimizer_epsilon)
 
         # a little wasteful to deepcopy (e.g. duplicates action selector), but should work for any MAC
         self.target_mac = copy.deepcopy(mac)
@@ -38,7 +38,6 @@ class QLearner:
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
         mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
-        avail_actions = batch["avail_actions"]
 
         # Calculate estimated Q-Values
         mac_out = []
@@ -69,10 +68,7 @@ class QLearner:
         target_mac_hidden_states = th.stack(target_mac_hidden_states, dim=1)
         target_mac_hidden_states = target_mac_hidden_states.reshape(batch.batch_size, self.args.n_agents, batch.max_seq_length, -1).transpose(1,2) #btav
 
-        # Mask out unavailable actions
-        target_mac_out[avail_actions[:, :] == 0] = -9999999  # From OG deepmarl
         mac_out_maxs = mac_out.clone()
-        mac_out_maxs[avail_actions == 0] = -9999999
 
         # Best joint action computed by target agents
         target_max_actions = target_mac_out.max(dim=3, keepdim=True)[1]
@@ -86,11 +82,11 @@ class QLearner:
 
             # Need to argmax across the target agents' actions to compute target joint-action Q-Values
             if self.args.double_q:
-                max_actions_current_ = th.zeros(size=(batch.batch_size, batch.max_seq_length, self.args.n_agents, self.args.n_actions), device=batch.device)
+                max_actions_current_ = th.zeros(size=(batch.batch_size, batch.max_seq_length, self.args.n_agents, self.args.n_discrete_actions), device=batch.device)
                 max_actions_current_onehot = max_actions_current_.scatter(3, max_actions_current[:, :], 1)
                 max_actions_onehot = max_actions_current_onehot
             else:
-                max_actions = th.zeros(size=(batch.batch_size, batch.max_seq_length, self.args.n_agents, self.args.n_actions), device=batch.device)
+                max_actions = th.zeros(size=(batch.batch_size, batch.max_seq_length, self.args.n_agents, self.args.n_discrete_actions), device=batch.device)
                 max_actions_onehot = max_actions.scatter(3, target_max_actions[:, :], 1)
             target_joint_qs, target_vs = self.target_mixer(batch[:, 1:], hidden_states=target_mac_hidden_states[:,1:], actions=max_actions_onehot[:,1:])
 
@@ -104,7 +100,7 @@ class QLearner:
             # -- Opt Loss --
             # Argmax across the current agents' actions
             if not self.args.double_q: # Already computed if we're doing double Q-Learning
-                max_actions_current_ = th.zeros(size=(batch.batch_size, batch.max_seq_length, self.args.n_agents, self.args.n_actions), device=batch.device )
+                max_actions_current_ = th.zeros(size=(batch.batch_size, batch.max_seq_length, self.args.n_agents, self.args.n_discrete_actions), device=batch.device )
                 max_actions_current_onehot = max_actions_current_.scatter(3, max_actions_current[:, :], 1)
             max_joint_qs, _ = self.mixer(batch[:, :-1], mac_hidden_states[:,:-1], actions=max_actions_current_onehot[:,:-1]) # Don't use the target network and target agent max actions as per author's email
 

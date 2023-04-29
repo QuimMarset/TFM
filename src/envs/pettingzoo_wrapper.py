@@ -6,7 +6,10 @@ from envs.multiagentenv import MultiAgentEnv
 from envs.petting_zoo.pistonball import PistonBall
 from envs.petting_zoo.pistonball_reward import PistonBallReward
 from envs.petting_zoo.pistonball_reward_2_actions import PistonBallReward2Actions
+from envs.petting_zoo.pistonball_entities import PistonBallEntities
+from envs.petting_zoo.pistonball_entities_custom_reward import PistonBallEntitiesCustomReward
 from envs.petting_zoo.wrappers.pettingzoo_to_gym_wrapper import PettingZooToGymWrapper
+from envs.petting_zoo.pistonball_positions_global_reward_2_actions import PistonBallPositionsGlobalReward2Actions
 
 
 
@@ -29,6 +32,23 @@ def piston_ball_custom_reward_2_actions_creation(**kwargs):
     return env
 
 
+def pistonball_entities(**kwargs):
+    env = PistonBallEntities(**kwargs)
+    env = PettingZooToGymWrapper(env)
+    return env
+
+
+def pistonball_entities_custom_reward(**kwargs):
+    env = PistonBallEntitiesCustomReward(**kwargs)
+    env = PettingZooToGymWrapper(env)
+    return env
+
+def pistonball_positions_global_reward_2_actions(**kwargs):
+    env = PistonBallPositionsGlobalReward2Actions(**kwargs)
+    env = PettingZooToGymWrapper(env)
+    return env
+
+
 def env_creator(key, **kwargs):
     if key == 'pistonball':
         return piston_ball_creation(**kwargs)
@@ -36,6 +56,12 @@ def env_creator(key, **kwargs):
         return piston_ball_custom_reward_creation(**kwargs)
     elif key == 'pistonball_reward_2_actions':
         return piston_ball_custom_reward_2_actions_creation(**kwargs)
+    elif key == 'pistonball_entities':
+        return pistonball_entities(**kwargs)
+    elif key == 'pistonball_entities_custom_reward':
+        return pistonball_entities_custom_reward(**kwargs)
+    elif key == 'pistonball_positions_global_2_actions':
+        return pistonball_positions_global_reward_2_actions(**kwargs)
     else:
         raise NotImplementedError(f'{key} not yet implemented')
 
@@ -72,7 +98,7 @@ class PettingZooWrapper(MultiAgentEnv):
         raise self.obs[agent_id]
 
 
-    def get_obs_size(self):
+    def get_obs_shape(self):
         return flatdim(self.longest_observation_space)
 
 
@@ -80,7 +106,7 @@ class PettingZooWrapper(MultiAgentEnv):
         return np.reshape(self.initial_env.state(), -1)
 
 
-    def get_state_size(self):
+    def get_state_shape(self):
         return flatdim(self.initial_env.state_space)
 
 
@@ -88,26 +114,12 @@ class PettingZooWrapper(MultiAgentEnv):
         raise self.obs[agent_id]
 
 
-    def get_obs_size(self):
+    def get_obs_shape(self):
         return flatdim(self.longest_observation_space)
+    
 
-
-    def get_avail_actions(self):
-        avail_actions = []
-        for agent_id in range(self.n_agents):
-            avail_agent = self.get_avail_agent_actions(agent_id)
-            avail_actions.append(avail_agent)
-        return avail_actions
-
-
-    def get_avail_agent_actions(self, agent_id):
-        valid = flatdim(self.env.action_space[agent_id]) * [1]
-        invalid = [0] * (self.longest_action_space.n - len(valid))
-        return valid + invalid
-
-
-    def get_total_actions(self):
-        return flatdim(self.longest_action_space)
+    def get_action_shape(self):
+        return 1
 
 
     def reset(self):
@@ -139,20 +151,28 @@ class PettingZooWrapper(MultiAgentEnv):
     
     def get_current_frame(self):
         return self.env.get_current_frame()
+    
+
+    def get_number_of_discrete_actions(self):
+        return self.longest_action_space.n
+
+    
+    def get_action_dtype(self):
+        return self.longest_action_space.dtype
+    
+
+    def has_discrete_actions(self):
+        return True
+    
+
+    def get_action_spaces(self):
+        return self.env.action_space
 
 
 
 class PettingZooContinuousWrapper(PettingZooWrapper):
     
-    def __init__(self, key=None, pretrained_wrapper=None, **kwargs):
-
-        if key is None:
-            key = kwargs['env_args']['key']
-            pretrained_wrapper = kwargs['env_args']['pretrained_wrapper']
-            kwargs = kwargs['env_args']
-            kwargs.pop('key', None)
-            kwargs.pop('pretrained_wrapper', None)
-
+    def __init__(self, key, pretrained_wrapper=None, **kwargs):
         self.initial_env = env_creator(key, **kwargs)
         self.env = TimeLimit(self.initial_env, max_episode_steps=125)
         self.env = FlattenObservation(self.env)
@@ -164,39 +184,25 @@ class PettingZooContinuousWrapper(PettingZooWrapper):
         self.n_agents = self.initial_env.num_agents
         self.longest_action_space = max(self.env.action_space, key=lambda x: x.shape)
         self.longest_observation_space = max(self.env.observation_space, key=lambda x: x.shape)
-        self.n_actions = flatdim(self.longest_action_space)
 
 
     def step(self, actions):
         self.obs, reward, done, _ = self.env.step(actions)
-        self.obs = [np.pad(o, (0, self.longest_observation_space.shape[0] - len(o)),
-                "constant", constant_values=0) for o in self.obs]
         return float(sum(reward)), all(done), {}
+    
 
-
-    def get_avail_actions(self): # all actions are always available
-        return np.ones(shape=(self.n_agents, self.n_actions,))
-
-
-    def get_avail_agent_actions(self, agent_id):
-        return np.ones(shape=(self.n_actions,))
+    def get_action_shape(self):
+        return self.longest_action_space.shape[0]
 
 
     def reset(self):
         self.obs = self.env.reset()
-        self.obs = [np.pad(o, (0, self.longest_observation_space.shape[0] - len(o)),
-                "constant", constant_values=0) for o in self.obs]
         return self.get_obs(), self.get_state()
+    
 
+    def get_number_of_discrete_actions(self):
+        return -1
+    
 
-    def get_env_info(self):
-        env_info = {"state_shape": self.get_state_size(),
-                    "obs_shape": self.get_obs_size(),
-                    "n_actions": self.get_total_actions(),
-                    "n_agents": self.n_agents,
-                    "episode_limit": self.episode_limit,
-                    "action_spaces": self.env.action_space,
-                    "actions_dtype": np.float32,
-                    "normalise_actions": False
-                    }
-        return env_info
+    def has_discrete_actions(self):
+        return False

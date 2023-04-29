@@ -4,7 +4,6 @@ import numpy as np
 import os
 import json
 import pprint
-import torch as th
 
 
 
@@ -15,6 +14,9 @@ class Logger:
         self.stats = defaultdict(lambda: [])
         self.save_path = save_path
         self.metrics_path = os.path.join(save_path, 'metrics.json')
+        self.log_output_path = os.path.join(save_path, 'console_otput.txt')
+        self.returns_path = os.path.join(save_path, 'episode_returns.txt')
+        self.episode_num = 0
         self.create_metrics_data()
 
 
@@ -47,6 +49,17 @@ class Logger:
         self.write_metrics_data(metrics_data)
 
 
+    def write_console_output(self, string_data):
+        with open(self.log_output_path, 'a') as file:
+            file.write(string_data + '\n')
+
+
+    def write_episode_return(self, episode_return):
+        with open(self.returns_path, 'a') as file:
+            file.write(f'Episode {self.episode_num} return: {episode_return:.4f}\n')
+        self.episode_num += 1
+
+
     def print_recent_stats(self):
         log_str = "\nRecent Stats | t_env: {:>10} | Episode: {:>8}\n".format(*self.stats["episode"][-1])
         i = 0
@@ -62,6 +75,7 @@ class Logger:
             log_str += "{:<25}{:>8}".format(k + ":", item)
             log_str += "\n" if i % 4 == 0 else "\t"
         self.console_logger.info(log_str)
+        self.write_console_output(log_str)
 
 
     def save_config(self, config):
@@ -87,4 +101,3 @@ class Logger:
         logger.addHandler(ch)
         logger.setLevel('DEBUG')
         return logger
-

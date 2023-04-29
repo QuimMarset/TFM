@@ -8,7 +8,6 @@ class COMACritic(nn.Module):
         super(COMACritic, self).__init__()
 
         self.args = args
-        self.n_actions = args.n_actions
         self.n_agents = args.n_agents
 
         input_shape = self._get_input_shape(scheme)
@@ -17,7 +16,7 @@ class COMACritic(nn.Module):
         # Set up network layers
         self.fc1 = nn.Linear(input_shape, args.hidden_dim)
         self.fc2 = nn.Linear(args.hidden_dim, args.hidden_dim)
-        self.fc3 = nn.Linear(args.hidden_dim, self.n_actions)
+        self.fc3 = nn.Linear(args.hidden_dim, self.args.n_discrete_actions)
 
     def forward(self, batch, t=None):
         inputs = self._build_inputs(batch, t=t)
@@ -41,7 +40,7 @@ class COMACritic(nn.Module):
         # actions (masked out by agent)
         actions = batch["actions_onehot"][:, ts].view(bs, max_t, 1, -1).repeat(1, 1, self.n_agents, 1)
         agent_mask = (1 - th.eye(self.n_agents, device=batch.device))
-        agent_mask = agent_mask.view(-1, 1).repeat(1, self.n_actions).view(self.n_agents, -1)
+        agent_mask = agent_mask.view(-1, 1).repeat(1, self.args.n_discrete_actions).view(self.n_agents, -1)
         inputs.append(actions * agent_mask.unsqueeze(0).unsqueeze(0))
 
         # last actions

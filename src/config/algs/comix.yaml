@@ -1,0 +1,66 @@
+# --- COMIX specific parameters ---
+
+name: "comix"
+
+obs_agent_id: True
+obs_last_action: True
+
+runner: "parallel"
+batch_size_run: 8
+batch_size: 50
+buffer_size: 4000
+t_max: 1000000
+
+discretize_actions: False
+double_q: False
+
+exploration_mode: "gaussian"
+start_steps: 200000
+stop_noise_step: 400000
+act_noise: 0.2
+ou_theta: 0.15
+ou_sigma: 0.2
+ou_noise_scale: 0.3
+
+gamma: 0.99
+
+lr: 0.001
+grad_norm_clip: 50
+
+learner: "continuous_q_learner"
+mac: "comix_mac"
+agent: "rnn"
+mixer: "qmix"
+
+td_lambda: 0.8
+critic_train_reps: 1
+
+skip_connections: False
+gated: False
+
+mixing_embed_dim: 128
+hypernet_layers: 2
+hypernet_embed: 64
+hyper_initialization_nonzeros: 0
+hidden_dim: 64
+
+target_update_mode: "soft"
+target_update_tau: 0.005
+hard_update_interval: 200
+
+save_model: False
+save_model_interval: 20000
+
+agent_return_logits: False
+q_embed_dim: 1
+
+lr_decay: False
+lr_decay_gamma: 0.9
+lr_decay_episodes: 20
+
+#load_step: 561000
+#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/facmac_pettingzoo/196/models" 
+#evaluate: True # Evaluate model for test_nepisode episodes and quit (no training)
+
+standardise_returns: False
+standardise_rewards: False

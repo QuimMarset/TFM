@@ -3,18 +3,17 @@ env: "mujoco_multi"
 env_args:
     episode_limit: 1000
     scenario: "manyagent_swimmer"
-    agent_conf: "10x2"
+    agent_conf: "8x2"
     agent_obsk: 0
     obs_add_global_pos: False
-    custom_args:
+    #custom_args:
         #healthy_reward: 1
-        render_mode: ~
+    render_mode: ~
 
-t_max: 700000
-
-repetitions: 1
+repetitions: 5
 
 test_interval: 5000
+test_nepisode: 50
 log_interval: 5000
 runner_log_interval: 5000
 learner_log_interval: 5000

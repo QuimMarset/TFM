@@ -3,7 +3,7 @@ from os import makedirs
 
 
 root_path = ''
-src_path = join(root_path, 'src')
+src_path = join(root_path, '')
 
 configs_path = join(src_path, 'config')
 alg_configs_path = join(configs_path, 'algs')

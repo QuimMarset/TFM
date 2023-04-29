@@ -37,21 +37,39 @@ def update_config_recursive(default_config, loaded_config):
     return default_config
 
 
-def get_experiments_folder(env_name, algorithm_name):
-    path = join(results_path, env_name, algorithm_name)
-    makedirs(path, exist_ok=True)
-    return path
+def get_env_name(config):
+    if 'key' in config['env_args']:
+        env_name = config['env_args']['key']
+    elif 'scenario' in config['env_args']:
+        env_name = config['env_args']['scenario']
+    elif 'scenario_name' in config['env_args']:
+        env_name = config['env_args']['scenario_name']
+    else:
+        env_name = config['env']
+    return env_name
+
+
+def get_algorithm_name(config):
+    return config['name']
 
 
 def get_number_subfolders(path):
     return sum(isdir(join(path, elem)) for elem in listdir(path))
 
 
-def create_new_experiment(experiments_folder_path):
-    num_experiments = get_number_subfolders(experiments_folder_path)
-    experiment_path = join(experiments_folder_path, str(num_experiments + 1))
-    makedirs(experiment_path, exist_ok=True)
-    return experiment_path
+def create_new_experiment(env_name, algorithm_name):
+    path = join(results_path, env_name, algorithm_name)
+    makedirs(path, exist_ok=True)
+    num_experiments = get_number_subfolders(path)
+    path = join(path, f'run_{num_experiments + 1}')
+    makedirs(path, exist_ok=True)
+    return path
+
+
+def create_new_experiment_run(experiment_path, num_run):
+    path = join(experiment_path, str(num_run))
+    makedirs(path, exist_ok=True)
+    return path
 
 
 def set_random_seed():

@@ -11,7 +11,7 @@ class COMALearner:
     def __init__(self, mac, scheme, logger, args):
         self.args = args
         self.n_agents = args.n_agents
-        self.n_actions = args.n_actions
+        self.n_net_outputs = args.n_net_outputs
         self.mac = mac
         self.logger = logger
 
@@ -44,7 +44,6 @@ class COMALearner:
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
         mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
-        avail_actions = batch["avail_actions"][:, :-1]
 
         if self.args.standardise_rewards:
             self.rew_ms.update(rewards)
@@ -54,7 +53,7 @@ class COMALearner:
 
         mask = mask.repeat(1, 1, self.n_agents).view(-1)
 
-        q_vals, critic_train_stats = self._train_critic(batch, rewards, terminated, actions, avail_actions,
+        q_vals, critic_train_stats = self._train_critic(batch, rewards, terminated, actions,
                                                         critic_mask, bs, max_t)
 
         actions = actions[:,:-1]
@@ -67,8 +66,8 @@ class COMALearner:
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
 
         # Calculated baseline
-        q_vals = q_vals.reshape(-1, self.n_actions)
-        pi = mac_out.view(-1, self.n_actions)
+        q_vals = q_vals.reshape(-1, self.n_net_outputs)
+        pi = mac_out.view(-1, self.n_net_outputs)
         baseline = (pi * q_vals).sum(-1).detach()
 
         # Calculate policy grad with mask
@@ -107,7 +106,7 @@ class COMALearner:
             self.logger.log_stat("pi_max", (pi.max(dim=1)[0] * mask).sum().item() / mask.sum().item(), t_env)
             self.log_stats_t = t_env
 
-    def _train_critic(self, batch, rewards, terminated, actions, avail_actions, mask, bs, max_t):
+    def _train_critic(self, batch, rewards, terminated, actions, mask, bs, max_t):
         # Optimise critic
         with th.no_grad():
             target_q_vals = self.target_critic(batch)
