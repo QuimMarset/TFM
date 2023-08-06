@@ -7,12 +7,12 @@ class NonSharedCritic(NonSharedAgent):
 
     # In this sub-class, agent refers to the critic
 
-    def __init__(self, history_shape, action_shape, args, agent_class):
+    def __init__(self, input_shape, action_shape, args, agent_class):
         th.nn.Module.__init__(self)
         self.args = args
         self.n_agents = args.n_agents
-        history_shape = self._process_input_shape(history_shape)
-        self.agents = th.nn.ModuleList([agent_class(history_shape, action_shape, args) for _ in range(self.n_agents)])
+        input_shape = self._process_input_shape(input_shape)
+        self.agents = th.nn.ModuleList([agent_class(input_shape, action_shape, args) for _ in range(self.n_agents)])
     
 
     def forward(self, history, hidden_state, actions):

@@ -61,14 +61,29 @@ class MultiAgentEnv(object):
     def save_replay(self):
         raise NotImplementedError
 
-    def get_env_info(self):
-        env_info = {"state_shape": self.get_state_shape(),
-                    "obs_shape": self.get_obs_shape(),
-                    'action_shape': self.get_action_shape(),
-                    'n_discrete_actions': self.get_number_of_discrete_actions(),
-                    'action_dtype': self.get_action_dtype(),
-                    'has_discrete_actions': self.has_discrete_actions(),
-                    'action_spaces': self.get_action_spaces(),
-                    'n_agents': self.n_agents,
-                    "episode_limit": self.episode_limit}
+    def get_entity_attributes(self):
+        return {
+            'n_entities' : self.n_entities,
+            'n_entities_obs' : self.n_entities_obs,
+            'n_entities_state' : self.n_entities_state,
+            'obs_entity_feats' : self.obs_entity_feats,
+            'state_entity_feats' : self.state_entity_feats
+        }
+
+    def get_env_info(self, args):
+        env_info = {
+            "state_shape": self.get_state_shape(),
+            "obs_shape": self.get_obs_shape(),
+            'action_shape': self.get_action_shape(),
+            'n_discrete_actions': self.get_number_of_discrete_actions(),
+            'action_dtype': self.get_action_dtype(),
+            'has_discrete_actions': self.has_discrete_actions(),
+            'action_spaces': self.get_action_spaces(),
+            'n_agents': self.n_agents,
+            'episode_limit': self.episode_limit
+        }
+
+        if args.env_args['obs_entity_mode'] or args.env_args['state_entity_mode']:
+            env_info.update(self.get_entity_attributes())
+
         return env_info

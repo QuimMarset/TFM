@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch as th
 
 
-#TODO: Remove agent ID if added
+
 class NonSharedAgent(nn.Module):
 
     # Builds a set of networks, each controlling an agent
@@ -17,7 +17,7 @@ class NonSharedAgent(nn.Module):
 
     def _process_input_shape(self, input_shape):
         # Remove the agent IDs if added (non-shared agents do not need it)
-        if self.args.obs_agent_id:
+        if self.args.add_agent_id:
             return input_shape - self.n_agents
         return input_shape
 
@@ -29,7 +29,7 @@ class NonSharedAgent(nn.Module):
 
     def _process_inputs(self, inputs):
         # Assume agent IDs at the end
-        if self.args.obs_agent_id:
+        if self.args.add_agent_id:
             return inputs[:, :, :-self.n_agents]
         return inputs
 

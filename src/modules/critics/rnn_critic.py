@@ -7,8 +7,8 @@ from modules.agents.rnn_agent import RNNAgent
 
 class RNNCritic(RNNAgent):
 
-    def __init__(self, history_shape, action_shape, args):
-        input_shape = history_shape + action_shape
+    def __init__(self, input_shape, action_shape, args):
+        input_shape = input_shape + action_shape
         super().__init__(input_shape, args)
         self.fc2 = nn.Linear(args.hidden_dim, args.n_critic_net_outputs)
 

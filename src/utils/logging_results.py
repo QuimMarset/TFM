@@ -4,13 +4,16 @@ import numpy as np
 import os
 import json
 import pprint
+from datetime import datetime, date
+from tensorboard_logger import Logger as TBLogger
+from utils.results_utils import get_saved_steps, compute_mean_runs, get_metric_names
 
 
 
 class Logger:
 
-    def __init__(self, save_path):
-        self.console_logger = self.create_console_logger()
+    def __init__(self, save_path, repetition_index):
+        self.console_logger = self.create_console_logger(repetition_index)
         self.stats = defaultdict(lambda: [])
         self.save_path = save_path
         self.metrics_path = os.path.join(save_path, 'metrics.json')
@@ -18,10 +21,16 @@ class Logger:
         self.returns_path = os.path.join(save_path, 'episode_returns.txt')
         self.episode_num = 0
         self.create_metrics_data()
+        self.create_tensorboard_logger()
+        self.log_date_to_console()
 
 
     def create_metrics_data(self):
         self.write_metrics_data({})
+
+
+    def create_tensorboard_logger(self):
+        self.tensorboard_logger = TBLogger(self.save_path)
 
 
     def read_metrics_data(self):
@@ -37,6 +46,8 @@ class Logger:
     def log_stat(self, key, value, t):
         self.stats[key].append((t, value))
         metrics_data = self.read_metrics_data()
+
+        self.tensorboard_logger.log_value(key, value, t)
         
         if key not in metrics_data:
             metrics_data[key] = {
@@ -90,8 +101,8 @@ class Logger:
         self.console_logger.info("\n\n" + experiment_params + "\n")
 
 
-    def create_console_logger(self):
-        logger = logging.getLogger('epymarl')
+    def create_console_logger(self, repetition_index):
+        logger = logging.getLogger(f'Run_{repetition_index + 1}')
         logger.handlers = []
         
         ch = logging.StreamHandler()
@@ -101,3 +112,36 @@ class Logger:
         logger.addHandler(ch)
         logger.setLevel('DEBUG')
         return logger
+    
+
+    def log_date_to_console(self):
+        current_date = date.today().strftime("%d/%m/%Y")
+        current_time = datetime.now().strftime("%H:%M:%S")
+        date_and_time = f'Current date is {current_date} and current time is {current_time}'
+        self.write_console_output(date_and_time)
+
+
+class GlobalTensorboardLogger:
+
+    def __init__(self, experiment_path):
+        self.log_stats = []
+        self.experiment_path = experiment_path
+        self.configure_global_tensorboard(experiment_path)
+
+    def configure_global_tensorboard(self, experiment_path):
+        experiment_tb_path = os.path.join(experiment_path, 'average_tb_logs')
+        os.makedirs(experiment_tb_path, exist_ok=True)
+        self.tensorboard_logger = TBLogger(experiment_tb_path)
+
+
+    def log_global_stats_metric(self, metric_name, global_stats, steps):
+        for global_stat, step in zip(global_stats, steps):
+            self.tensorboard_logger.log_value(metric_name, global_stat, step)
+
+
+    def log_global_stats(self, num_repetitions):
+        metric_names = get_metric_names(self.experiment_path)
+        for metric_name in metric_names:
+            steps = get_saved_steps(self.experiment_path, num_repetitions, metric_name)
+            mean_stats = compute_mean_runs(self.experiment_path, num_repetitions, metric_name)
+            self.log_global_stats_metric(metric_name, mean_stats, steps)

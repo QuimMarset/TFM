@@ -13,15 +13,14 @@ class TimeLimit(GymTimeLimit):
         self._elapsed_steps = None
 
     def step(self, action):
-        assert (
-            self._elapsed_steps is not None
-        ), "Cannot call env.step() before calling reset()"
+        assert (self._elapsed_steps is not None), "Cannot call env.step() before calling reset()"
         observation, reward, done, info = self.env.step(action)
         self._elapsed_steps += 1
+        truncated = False
         if self._elapsed_steps >= self._max_episode_steps:
             info["TimeLimit.truncated"] = not all(done)
-            done = len(observation) * [True]
-        return observation, reward, done, info
+            truncated = True
+        return observation, reward, done, truncated, info
 
 
 class FlattenObservation(ObservationWrapper):
@@ -54,8 +53,8 @@ class FlattenObservation(ObservationWrapper):
         )
 
     def step(self, action):
-        observation, reward, terminated, info = self.env.step(action)
-        return self.observation(observation), reward, terminated, info
+        observation, reward, done, truncated, info = self.env.step(action)
+        return self.observation(observation), reward, done, truncated, info
 
     
     def reset(self, **kwargs):

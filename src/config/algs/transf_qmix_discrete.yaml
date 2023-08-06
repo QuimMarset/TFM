@@ -1,0 +1,61 @@
+# --- TransformerQMix Discrete ---
+
+name: "transf_qmix_discrete"
+
+seed: 1412
+
+env_args:
+    obs_entity_mode: True
+    state_entity_mode: True
+
+# To keep the token dimension fixed, observaion id and last action should not be included
+add_agent_id: False
+add_last_action: False
+
+action_selector: "epsilon_greedy"
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 30000
+evaluation_epsilon: 0
+
+runner: "episode"
+batch_size_run: 1
+t_max: 100000
+buffer_size: 1000
+batch_size: 32
+
+gamma: 0.99
+
+lr: 0.001
+lr_decay: False
+
+grad_norm_clip: 50
+#optimizer_epsilon: 0.01
+td_lambda: 0.8
+
+learner: "discrete_transformer_learner"
+mac: "transformer_mac"
+agent: "transformer"
+mixer: "transformer"
+
+# parameters of the transformer agent
+emb_dim: 32 # embedding dimension of transformer
+num_heads: 4 # head number of transformer
+num_blocks: 2 # block number of transformer
+ff_hidden_mult: 2 # relative dimension of hidden layer of ff after attention
+dropout: 0 # multi-head attention dropout
+
+# parameters of the transformer mixer
+mixer_emb_dim: 32 # embedding dimension of transformer
+mixer_heads: 4 # head number of transformer
+mixer_depth: 2 # block number of transformer
+qmix_pos_func: "abs" # function to impose monotonic constraint
+
+target_update_mode: 'soft'
+hard_update_interval: 200
+target_update_tau: 0.005
+
+save_model: False
+save_model_interval: 5000
+
+use_cuda: False

@@ -9,14 +9,14 @@ class SharedButSidesCritic(SharedButSidesAgent):
     # Defines 3 agents: 2 to control the extreme pistons, 
     # and a 3rd to control the ones in between
 
-    def __init__(self, history_shape, action_shape, args, agent_class):
+    def __init__(self, input_shape, action_shape, args, agent_class):
         th.nn.Module.__init__(self)
         self.args = args
         self.n_agents = args.n_agents
-        side_shape = self._compute_side_input_shape(history_shape)
+        side_shape = self._compute_side_input_shape(input_shape)
         self.agents = th.nn.ModuleList(
             [agent_class(side_shape, action_shape, args),
-             agent_class(history_shape, action_shape, args),
+             agent_class(input_shape, action_shape, args),
              agent_class(side_shape, action_shape, args)
              ])
     

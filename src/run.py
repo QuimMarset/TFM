@@ -42,7 +42,7 @@ def run(config, logger, save_path):
 def evaluate_sequential(args, runner):
     for _ in range(args.test_nepisode):
         runner.run(test_mode=True)
-    if args.save_replay:
+    if getattr(args, 'save_replay', False):
         runner.save_replay()
     runner.close_env()
 
@@ -53,12 +53,8 @@ def run_sequential(args, logger, save_path):
     runner = r_REGISTRY[args.runner](args=args, logger=logger)
 
     env_info = runner.get_env_info()
-    args.n_agents = env_info["n_agents"]
-    args.state_shape = env_info["state_shape"]
-    args.obs_shape = env_info["obs_shape"]
-    args.action_shape = env_info['action_shape']
-    args.n_discrete_actions = env_info['n_discrete_actions']
-    args.action_spaces = env_info.get('action_spaces', [])
+    for k, v in env_info.items():
+        setattr(args, k, v)
 
     args.n_net_outputs = get_agent_network_num_of_outputs(args, env_info)
     # If the method is not an actor-critic, this second variable is not used
@@ -77,6 +73,17 @@ def run_sequential(args, logger, save_path):
         "terminated": {"vshape": (1,), "dtype": th.uint8},
     }
 
+    if args.buffer_transitions and is_multi_agent_method(args):
+        scheme['prev_obs'] = {
+            'vshape': env_info['obs_shape'] * args.num_previous_transitions,
+            'group' : 'agents'
+        }
+        scheme['prev_actions'] = {
+            "vshape": (env_info['action_shape'] * args.num_previous_transitions, ), 
+            "group": "agents", 
+            "dtype": actions_dtype
+        }
+
     groups = {
         "agents": args.n_agents
     }
@@ -88,9 +95,8 @@ def run_sequential(args, logger, save_path):
             "actions": ("actions_onehot", [OneHot(out_dim=args.n_discrete_actions)])
         }
 
-    buffer = ReplayBuffer(scheme, groups, args.buffer_size, 
-                          env_info["episode_limit"] + 1,
-                          preprocess=preprocess, device="cpu" if args.buffer_cpu_only else args.device)
+    max_length = env_info["episode_limit"] + 1 if not args.buffer_transitions else 2
+    buffer = ReplayBuffer(scheme, groups, args.buffer_size, max_length, preprocess=preprocess, device="cpu")
 
     # Learner
     learner = le_REGISTRY[args.learner](buffer.scheme, logger, args)
@@ -129,6 +135,8 @@ def run_sequential(args, logger, save_path):
             # choose the timestep closest to load_step
             timestep_to_load = min(timesteps, key=lambda x: abs(x - args.load_step))
 
+        #timestep_to_load = 1360000
+
         model_path = os.path.join(args.checkpoint_path, str(timestep_to_load))
 
         logger.console_logger.info("Loading model from {}".format(model_path))
@@ -156,13 +164,23 @@ def run_sequential(args, logger, save_path):
 
     while runner.t_env <= args.t_max:
 
-        # Run for a whole episode at a time
         episode_batch = runner.run(test_mode=False)
-        buffer.insert_episode_batch(episode_batch)
 
-        if buffer.can_sample(args.batch_size):
+        if args.buffer_transitions:
+            for i in range(episode_batch.batch_size):
+                for t in range(episode_batch.max_seq_length):
+                    buffer.insert_episode_batch(episode_batch[i, t:t+2])
+        else:
+            buffer.insert_episode_batch(episode_batch)
+        
+        if runner.t_env >= args.start_steps and buffer.can_sample(args.batch_size):
             
-            for _ in range(args.n_batches_to_sample):
+            n_batches_to_sample = getattr(args, 'n_batches_to_sample', -1)
+            if n_batches_to_sample == -1:
+                # Sample as many batches as steps performed in the environment
+                n_batches_to_sample = th.sum(episode_batch['filled'][:, :episode_batch.max_seq_length-1]).item()
+            
+            for _ in range(n_batches_to_sample):
 
                 episode_sample = buffer.sample(args.batch_size)
 
@@ -185,7 +203,7 @@ def run_sequential(args, logger, save_path):
             last_time = time.time()
 
             last_test_T = runner.t_env
-                        
+
             for _ in range(n_test_runs):
                 runner.run(test_mode=True)
 
@@ -203,8 +221,15 @@ def run_sequential(args, logger, save_path):
             logger.print_recent_stats()
             last_log_T = runner.t_env
 
+    if args.save_model_end:
+        save_path_model = os.path.join(save_path, 'models', str(runner.t_env))
+        os.makedirs(save_path_model, exist_ok=True)
+        logger.console_logger.info("Saving models to {}".format(save_path_model))
+        learner.save_models(save_path_model)
+
     runner.close_env()
     logger.console_logger.info("Finished Training")
+    logger.log_date_to_console()
 
 
 def args_sanity_check(config, _log):

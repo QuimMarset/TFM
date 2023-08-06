@@ -350,7 +350,7 @@ def get_parts_and_edges(label, partitioning):
     elif label in ["Swimmer-v4"]:
 
         # define Mujoco-Graph
-        joint0 = Node("rot2", -2, -2, 0) # TODO: double-check ids
+        joint0 = Node("rot2", -2, -2, 0)
         joint1 = Node("rot3", -1, -1, 1)
 
         edges = [HyperEdge(joint0, joint1)]

@@ -35,7 +35,7 @@ class EpisodeRunner:
         self.mac = mac
 
     def get_env_info(self):
-        return self.env.get_env_info()
+        return self.env.get_env_info(self.args)
 
     def save_replay(self):
         self.env.save_replay()
@@ -48,12 +48,16 @@ class EpisodeRunner:
         self.env.reset()
         self.t = 0
 
+        pre_transition_data = {
+            "state": [self.env.get_state()],
+            "obs": [self.env.get_obs()]
+        }
+
+        self.batch.update(pre_transition_data, ts=self.t)
+
+
     def run(self, test_mode=False, **kwargs):
         self.reset()
-
-        if test_mode and self.args.evaluate:
-            self.env.render()
-            time.sleep(0.03)
 
         terminated = False
         episode_return = 0
@@ -61,48 +65,36 @@ class EpisodeRunner:
 
         while not terminated:
 
-            pre_transition_data = {
-                "state": [self.env.get_state()],
-                "obs": [self.env.get_obs()]
-            }
-
-            self.batch.update(pre_transition_data, ts=self.t)
-
-            with th.no_grad():
-                actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
+            actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
             actions = actions.detach()
+            cpu_actions = actions.to("cpu").numpy()
 
-            if self.args.env in ["particle"]:
-                cpu_actions = copy.deepcopy(actions).to("cpu").numpy()
-                reward, terminated, env_info = self.env.step(cpu_actions[0])
-                if isinstance(reward, (list, tuple)):
-                    reward = reward[0]
-                episode_return += reward
-            else:
-                reward, terminated, env_info = self.env.step(actions[0].cpu())
-                episode_return += reward
+            reward, done, truncated, env_info = self.env.step(cpu_actions[0])
+            if self.args.env in ["particle"] and isinstance(reward, (list, tuple)):
+                reward = reward[0]
+
+            terminated = done or truncated
+                
+            episode_return += reward
 
             post_transition_data = {
                 "actions": actions,
                 "reward": [(reward,)],
-                "terminated": [(terminated != env_info.get("episode_limit", False),)],
+                "terminated": [(done,)],
             }
-
+            if getattr(self.args, "num_previous_transitions", -1) > 0:
+                post_transition_data["prev_obs"] = self._build_prev_obs(self.t)
+                post_transition_data['prev_actions'] = self._build_prev_actions(self.t)
+            
             self.batch.update(post_transition_data, ts=self.t)
 
             self.t += 1
 
-        last_data = {
-            "state": [self.env.get_state()],
-            "obs": [self.env.get_obs()]
-        }
-        self.batch.update(last_data, ts=self.t)
-
-        # Select actions in the last stored state
-        with th.no_grad():
-            actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
-
-        self.batch.update({"actions": actions}, ts=self.t)
+            pre_transition_data = {
+                "state": [self.env.get_state()],
+                "obs": [self.env.get_obs()]
+            }
+            self.batch.update(pre_transition_data, ts=self.t)
 
         cur_stats = self.test_stats if test_mode else self.train_stats
         cur_returns = self.test_returns if test_mode else self.train_returns
@@ -137,3 +129,34 @@ class EpisodeRunner:
             if k != "n_episodes":
                 self.logger.log_stat(prefix + k + "_mean" , v/stats["n_episodes"], self.t_env)
         stats.clear()
+
+
+    def _build_prev_obs(self, t):
+        if t >= self.args.num_previous_transitions:
+            obs = [self.batch["obs"][:, i] for i in range(t-self.args.num_previous_transitions, t)]
+        
+        else:
+            obs = [self.batch["obs"][:, i] for i in range(t)]
+            for _ in range(t, self.args.num_previous_transitions):
+                obs.append(self.batch['obs'][:, t])
+        
+        obs = th.cat(obs, dim=-1)
+        return obs
+
+
+    def _build_prev_actions(self, t):
+        window = self.args.num_previous_transitions
+        
+        if t == 0:
+            actions = [th.zeros_like(self.batch["actions"][:, t]) for _ in range(window)]
+        
+        elif t >= window:
+            actions = [self.batch["actions"][:, i] for i in range(t-window, t)]
+        
+        else:
+            actions = [self.batch["actions"][:, i] for i in range(t)]
+            for _ in range(t, window):
+                actions.append(self.batch['actions'][:, t-1])
+        
+        actions = th.cat(actions, dim=-1)
+        return actions

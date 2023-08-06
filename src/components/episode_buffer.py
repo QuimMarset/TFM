@@ -5,14 +5,7 @@ from types import SimpleNamespace as SN
 
 class EpisodeBatch:
 
-    def __init__(self,
-                 scheme,
-                 groups,
-                 batch_size,
-                 max_seq_length,
-                 data=None,
-                 preprocess=None,
-                 device="cpu"):
+    def __init__(self, scheme, groups, batch_size, max_seq_length, data=None, preprocess=None, device="cpu"):
         self.scheme = scheme.copy()
         self.groups = groups
         self.batch_size = batch_size

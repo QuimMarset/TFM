@@ -14,11 +14,15 @@ def get_agent_network_num_of_outputs(args, env_info):
     
     else:
 
-        if args.agent == 'rnn_mean_log_std' or args.agent == 'rnn_actor' or args.agent == 'mlp_actor':
-            return env_info['action_shape']
-        
-        elif args.name == 'single_actor_critic':
+        methods = ['rnn_mean_log_std', 'rnn_actor', 'mlp_actor', 'transformer_actor', 'mlp_mean_log_std',
+                   'non_shared_actor_mlp', 'non_shared_actor_rnn', 'sides_actor_rnn', 'sides_actor_mlp',
+                   'shared_but_first_actor_mlp']
+
+        if args.name == 'td3' or args.name == 'ddpg':
             return env_info['action_shape'] * args.n_agents
+
+        elif args.agent in methods:
+            return env_info['action_shape']
 
         else:
             # COMIX
@@ -28,3 +32,7 @@ def get_agent_network_num_of_outputs(args, env_info):
 
 def get_critic_network_num_of_outputs(args, env_info):
     return 1
+
+
+def is_multi_agent_method(args):
+    return args.name not in ['td3', 'dqn', 'ddpg']

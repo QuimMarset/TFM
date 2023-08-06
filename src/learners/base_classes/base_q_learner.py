@@ -131,9 +131,8 @@ class BaseQLearner:
 
     def load_models(self, path):
         self.agent.load_models(path)
-        self.target_agent.load_models(path)
-        if self.mixer is not None:
-            self.mixer.load_state_dict(th.load(f"{path}/mixer.th", 
-                                               map_location=lambda storage, loc: storage))
-        self.optimizer.load_state_dict(th.load(f"{path}/opt.th", 
-                                               map_location=lambda storage, loc: storage))
+        if not self.args.evaluate:
+            self.target_agent.load_models(path)
+            if self.mixer is not None:
+                self.mixer.load_state_dict(th.load(f"{path}/mixer.th", map_location=lambda storage, loc: storage))
+            self.optimizer.load_state_dict(th.load(f"{path}/opt.th", map_location=lambda storage, loc: storage))

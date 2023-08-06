@@ -18,7 +18,7 @@ class Particle(MultiAgentEnv):
 
         # load scenario from script
         self.episode_limit = self.args.episode_limit
-        self.scenario = scenarios.load(self.args.scenario + ".py").Scenario()
+        self.scenario = scenarios.load(self.args.scenario + ".py").Scenario(self.args.obs_entity_mode)
         if not self.args.partial_obs:
             self.world = self.scenario.make_world()
         else:
@@ -45,10 +45,19 @@ class Particle(MultiAgentEnv):
                                                self.scenario.reset_world,
                                                self.scenario.reward,
                                                self.scenario.observation,
-                                               self.scenario.full_observation)
+                                               self.scenario.observation)
 
         self.glob_args = kwargs.get("args")
-        pass
+        self._set_entity_attributes()
+
+    
+    def _set_entity_attributes(self):
+        self.n_entities_obs = self.scenario.n_entities_obs
+        self.obs_entity_feats = self.scenario.obs_entity_feats
+        self.n_entities_state = self.scenario.n_entities_state
+        self.state_entity_feats = self.scenario.state_entity_feats
+        self.n_entities = self.scenario.n_entities
+
 
     def step(self, actions):
         obs_n, reward_n, done_n, info_n = self.env.step(actions)

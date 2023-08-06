@@ -1,7 +1,11 @@
-from critic_controllers.factorized_controller import FactorizedCriticController
-from critic_controllers.maddpg_controller import MADDPGCriticController
-from critic_controllers.maddpg_discrete_controller import MADDPGDiscreteCriticController
-from critic_controllers.ddpg_controller import DDPGController
+from critic_controllers.single_agent.ddpg_controller import DDPGController
+from critic_controllers.single_agent.td3_controller import TD3Controller
+
+from critic_controllers.multi_agent.factorized_controller import FactorizedCriticController
+from critic_controllers.multi_agent.maddpg_controller import MADDPGCriticController
+from critic_controllers.multi_agent.maddpg_discrete_controller import MADDPGDiscreteCriticController
+from critic_controllers.multi_agent.factorized_controller_no_rnn import FactorizedCriticControllerNoRNN
+from critic_controllers.multi_agent.factorized_td3_controller_no_rnn import FactorizedTD3CriticControllerNoRNN
 
 
 
@@ -11,3 +15,6 @@ REGISTRY['factorized_controller'] = FactorizedCriticController
 REGISTRY['maddpg_controller'] = MADDPGCriticController
 REGISTRY['maddpg_discrete_controller'] = MADDPGDiscreteCriticController
 REGISTRY['ddpg_controller'] = DDPGController
+REGISTRY['td3_controller'] = TD3Controller
+REGISTRY['factorized_no_rnn_controller'] = FactorizedCriticControllerNoRNN
+REGISTRY['factorized_td3_no_rnn_controller'] = FactorizedTD3CriticControllerNoRNN

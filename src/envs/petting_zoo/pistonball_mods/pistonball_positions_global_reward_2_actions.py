@@ -146,6 +146,7 @@ class raw_env(AECEnv, EzPickle):
         ball_elasticity=1.5,
         max_cycles=125,
         render_mode=None,
+        state_entity_mode=False,
     ):
         EzPickle.__init__(
             self,
@@ -159,6 +160,7 @@ class raw_env(AECEnv, EzPickle):
             ball_elasticity,
             max_cycles,
             render_mode,
+            state_entity_mode,
         )
         self.dt = 1.0 / FPS
         self.n_pistons = n_pistons
@@ -211,12 +213,25 @@ class raw_env(AECEnv, EzPickle):
             self.action_spaces = dict(
                 zip(self.agents, [gymnasium.spaces.Discrete(2)] * self.n_pistons)
             )
-        self.state_space = gymnasium.spaces.Box(
-            low=0,
-            high=max(self.screen_width, self.screen_height),
-            shape=(2*self.n_pistons + 2,),
-            dtype=np.float32,
-        )
+
+        if state_entity_mode:
+            self.state = self.state_entity_mode
+            self.state_space = gymnasium.spaces.Box(
+                low=0,
+                high=1,
+                shape=(3*self.n_pistons,),
+                dtype=np.float32,
+            )
+        else:
+            self.state = self.state_default
+            self.state_space = gymnasium.spaces.Box(
+                low=0,
+                high=max(self.screen_width, self.screen_height),
+                shape=(2*self.n_pistons + 2,),
+                dtype=np.float32,
+            )
+
+        self._set_entity_attributes()
 
         pygame.init()
         pymunk.pygame_util.positive_y_is_up = False
@@ -311,7 +326,7 @@ class raw_env(AECEnv, EzPickle):
         position_x = (position[0] - self.wall_width) / (self.screen_width - 2*self.wall_width)
         position_y = (self.screen_height - position[1] - self.wall_width) / (self.piston_height + 3*self.ball_radius)
         ball_flags = self.compute_ball_position_wrt_piston(index)
-        return np.array([position_x, position_y, *ball_flags])
+        return np.array([position_x, position_y, *ball_flags], dtype=np.float32)
 
 
     def get_current_frame(self):
@@ -322,18 +337,34 @@ class raw_env(AECEnv, EzPickle):
         del frame
         return copy_frame
 
-    def state(self):
-        """Returns an observation of the global environment."""
+
+    def state_default(self):
         positions = []
         for agent in self.agent_name_mapping:
-            position = self.observe(agent)[:2]
-            positions.extend(position)
-
+            piston_position = self.observe(agent)[:2]
+            positions.extend(piston_position)
         ball_position_x = (self.ball.position[0] - self.wall_width) / (self.screen_width - 2*self.wall_width)
         ball_position_y = (self.screen_height - self.ball.position[1] - self.wall_width) / (self.piston_height + 3*self.ball_radius)
         positions.extend([ball_position_x, ball_position_y])
+        return np.array(positions, dtype=np.float32)
+    
 
-        return np.array(positions)
+    def state_entity_mode(self):
+        state_matrix = np.array([self.compute_ball_position_wrt_piston(i) for i in range(self.n_pistons)], dtype=np.float32)
+        return state_matrix.flatten()
+    
+
+    def _set_entity_attributes(self):
+        self.n_entities = 1
+        # Each agent observe itself as entity
+        self.n_entities_obs = 1
+        # Features of entity in obs are position and flags
+        self.obs_entity_feats = 5
+        # The state observe all the agent entities
+        self.n_entities_state = self.num_agents
+        # Features of entity in state are flags
+        self.state_entity_feats = 3
+
 
     def enable_render(self):
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))

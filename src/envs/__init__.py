@@ -1,9 +1,10 @@
 from functools import partial
 from envs.multiagentenv import MultiAgentEnv
 from envs.pettingzoo_wrapper import PettingZooWrapper, PettingZooContinuousWrapper
-from envs.gym_ma_wrapper import _GymmaWrapper
+#from envs.gym_ma_wrapper import _GymmaWrapper
 from envs.particle import Particle
 from envs.multiagent_mujoco import MujocoMulti
+#from envs.multiagent_mujoco_farama.mujoco_multi_wrapper import MujocoMultiFaramaWrapper
 
 
 
@@ -12,10 +13,11 @@ def env_fn(env, **kwargs) -> MultiAgentEnv:
 
 
 REGISTRY = {}
-REGISTRY["gymma"] = partial(env_fn, env=_GymmaWrapper)
+#REGISTRY["gymma"] = partial(env_fn, env=_GymmaWrapper)
 REGISTRY["pettingzoo"] = partial(env_fn, env=PettingZooWrapper)
 REGISTRY["pettingzoo_continuous"] = partial(env_fn, env=PettingZooContinuousWrapper)
 REGISTRY["mujoco_multi"] = partial(env_fn, env=MujocoMulti)
+#REGISTRY["mujoco_multi_farama"] = partial(env_fn, env=MujocoMultiFaramaWrapper)
 REGISTRY["particle"] = partial(env_fn, env=Particle)
 #REGISTRY["manyagent_swimmer"] = partial(env_fn, env=ManyAgentSwimmerEnv)
 #REGISTRY["manyagent_ant"] = partial(env_fn, env=ManyAgentAntEnv)

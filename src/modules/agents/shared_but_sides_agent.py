@@ -23,7 +23,7 @@ class SharedButSidesAgent(nn.Module):
         
 
     def _compute_side_input_shape(self, input_shape):
-        if self.args.obs_agent_id:
+        if self.args.add_agent_id:
             return input_shape - self.n_agents
         return input_shape
 
@@ -38,7 +38,7 @@ class SharedButSidesAgent(nn.Module):
 
     def _process_side_inputs(self, side_inputs):
         # We assume the agent IDs are appended at the end
-        if self.args.obs_agent_id:
+        if self.args.add_agent_id:
             # (b, 1, -1)
             return side_inputs[:, :, :-self.n_agents]
         return side_inputs

@@ -4,6 +4,12 @@ from envs.particle.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
+
+    def __init__(self, obs_entity_mode=False):
+        super().__init__()
+        self.obs_entity_mode = obs_entity_mode
+        self._set_entity_attributes()
+
     def make_world(self, args=None):
         world = World()
         # set any world properties first
@@ -37,6 +43,15 @@ class Scenario(BaseScenario):
         self.reset_world(world)
         self.score_function= getattr(args, "score_function", "sum")
         return world
+    
+
+    def _set_entity_attributes(self):
+        self.n_entities_obs = 6
+        self.obs_entity_feats = 6
+        self.n_entities_state = 18
+        self.state_entity_feats = 6
+        self.n_entities = 6
+
 
     def prey_policy(self, agent, world):
         action = None
@@ -181,8 +196,59 @@ class Scenario(BaseScenario):
                     if self.is_collision(ag, adv):
                         rew += 10
         return rew
-
+    
     def observation(self, agent, world):
+        if self.obs_entity_mode:
+            return self.observation_entities(agent, world)
+        return self.observation_default(agent, world)
+    
+
+    def _get_landmarks_features(self, agent, world):
+        num_landmarks = len(world.landmarks)
+        # Relative/Absolute position, velocity, is_self, is_agent
+        entity_feats = np.zeros((num_landmarks, 6))
+
+        for i, entity in enumerate(world.landmarks):
+            dist = np.sqrt(np.sum(np.square(entity.state.p_pos - agent.state.p_pos)))
+            if not entity.boundary and (agent.view_radius >= 0) and dist <= agent.view_radius:
+                entity_feats[i, :2] = entity.state.p_pos - agent.state.p_pos
+
+        return entity_feats.flatten()
+
+
+    def _get_agents_features(self, agent, world):
+        # Agents refers to both the predators and the preys
+        # However, the feature is_agent only applies to the predators
+        num_agents = len(world.agents)
+        # Relative/Absolute position, velocity, is_self, is_agent
+        entity_feats = np.zeros((num_agents, 6))
+
+        for i, other_agent in enumerate(world.agents):
+
+            dist = np.sqrt(np.sum(np.square(other_agent.state.p_pos - agent.state.p_pos)))
+            if agent.view_radius >= 0 and dist <= agent.view_radius:
+                if other_agent is agent:
+                    entity_feats[i, :2] = other_agent.state.p_pos
+                else:
+                    entity_feats[i, :2] = other_agent.state.p_pos - agent.state.p_pos
+                entity_feats[i, 2:4] = other_agent.state.p_vel
+            
+            if other_agent is agent:
+                entity_feats[i, 4] = 1
+            
+            if other_agent.adversary:
+                entity_feats[i, 5] = 1
+            
+        return entity_feats.flatten()
+
+
+    def observation_entities(self, agent, world):
+        landmark_features = self._get_landmarks_features(agent, world)
+        agent_features = self._get_agents_features(agent, world)
+        return np.concatenate([agent_features, landmark_features])
+    
+
+    def observation_default(self, agent, world):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
         for entity in world.landmarks:
@@ -208,6 +274,7 @@ class Scenario(BaseScenario):
                 if not other.adversary:
                     other_vel.append(np.array([0., 0.]))
         return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+
 
     def full_observation(self, agent, world):
         # get positions of all entities in this agent's reference frame

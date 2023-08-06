@@ -5,7 +5,9 @@ import numpy as np
 from envs.multiagentenv import MultiAgentEnv
 from envs.multiagent_mujoco.manyagent_ant import ManyAgentAntEnv
 from envs.multiagent_mujoco.manyagent_swimmer import ManyAgentSwimmerEnv
+from envs.multiagent_mujoco.swimmer_v4_revised import SwimmerEnv
 from envs.multiagent_mujoco.obsk import get_joints_at_kdist, get_parts_and_edges, build_obs
+
 
 
 # using code from https://github.com/ikostrikov/pytorch-ddpg-naf
@@ -32,6 +34,10 @@ class MujocoMulti(MultiAgentEnv):
     def __init__(self, **kwargs):
         self.scenario = kwargs["scenario"]  # e.g. Ant-v4
         self.agent_conf = kwargs["agent_conf"]  # e.g. '2x3'
+
+        self.seed_ = kwargs['seed']
+
+        self.normalize_data = kwargs.get('normalize_data', False)
 
         self.agent_partitions, self.mujoco_edges, self.mujoco_globals = get_parts_and_edges(self.scenario,
                                                                                              self.agent_conf)
@@ -74,14 +80,15 @@ class MujocoMulti(MultiAgentEnv):
         # load scenario from script
         self.episode_limit = kwargs.get('episode_limit', 1000)
 
-        if self.scenario in ['manyagent_ant', 'manyagent_swimmer']:
+        if self.scenario in ['manyagent_ant', 'manyagent_swimmer', 'Swimmer-v4']:
             if self.scenario == 'manyagent_ant':
                 env_class = ManyAgentAntEnv
-            else:
+            elif self.scenario == 'manyagent_swimmer':
                 env_class = ManyAgentSwimmerEnv
+            else:
+                env_class = SwimmerEnv
 
-            self.wrapped_env = NormalizedActions(TimeLimit(env_class(**kwargs), 
-                                                           max_episode_steps=self.episode_limit))
+            self.wrapped_env = NormalizedActions(TimeLimit(env_class(**kwargs), max_episode_steps=self.episode_limit))
 
         else:
             custom_args = kwargs.get('custom_args', {})
@@ -94,28 +101,49 @@ class MujocoMulti(MultiAgentEnv):
 
         # COMPATIBILITY
         self.n = self.n_agents
-        low = np.min(self.wrapped_env.observation_space.low)
-        high = np.max(self.wrapped_env.observation_space.high)
+
+        if self.normalize_data:
+            low = 0
+            high = 1
+        else:
+            low = np.min(self.wrapped_env.observation_space.low)
+            high = np.max(self.wrapped_env.observation_space.high)
+
         self.observation_space = [Box(low=np.array([low]*self.n_agents),
                                       high=np.array([high]*self.n_agents)) for _ in range(self.n_agents)]
 
         acdims = [len(ap) for ap in self.agent_partitions]
-        self.action_space = tuple([Box(self.env.action_space.low[sum(acdims[:a]):sum(acdims[:a+1])],
-                                       self.env.action_space.high[sum(acdims[:a]):sum(acdims[:a+1])]) for a in range(self.n_agents)])
+        self.action_space = tuple([
+            Box(self.env.action_space.low[sum(acdims[:a]):sum(acdims[:a+1])],
+                self.env.action_space.high[sum(acdims[:a]):sum(acdims[:a+1])],
+                seed=self.seed_) 
+            for a in range(self.n_agents)])
+        
+            
+        self.state_entity_mode = kwargs.get('state_entity_mode', False)
+        if self.state_entity_mode:
+            self._set_entity_attributes()
+        
+
+    def _set_entity_attributes(self):
+        self.n_entities = self.env.unwrapped.n_entities_obs
+        self.n_entities_obs = self.env.unwrapped.n_entities_obs
+        self.n_entities_state = self.env.unwrapped.n_entities_state
+        self.obs_entity_feats = self.env.unwrapped.obs_entity_feats
+        self.state_entity_feats = self.env.unwrapped.state_entity_feats
         
 
     def step(self, actions):
-
         # we need to map actions back into MuJoCo action space
-        env_actions = np.zeros((sum([self.action_space[i].low.shape[0] for i in range(self.n_agents)]),)) + np.nan
+        num_actions = sum([action_space_i.low.shape[0] for action_space_i in self.action_space])
+        env_actions = np.zeros(num_actions)
+
         for a, partition in enumerate(self.agent_partitions):
             for i, body_part in enumerate(partition):
-                if env_actions[body_part.act_ids] == env_actions[body_part.act_ids]:
-                    raise Exception("FATAL: At least one env action is doubly defined!")
                 env_actions[body_part.act_ids] = actions[a][i]
 
-        if np.isnan(env_actions).any():
-            raise Exception("FATAL: At least one env action is undefined!")
+        if np.isnan(actions).any():
+            raise Exception("FATAL: At least one action is NaN!")
 
         obs_n, reward_n, done_n, truncated_n, info_n = self.wrapped_env.step(env_actions)
         self.steps += 1
@@ -125,29 +153,57 @@ class MujocoMulti(MultiAgentEnv):
 
         if done_n or truncated_n:
             if self.steps < self.episode_limit:
-                info["episode_limit"] = False   # the next state will be masked out
+                info["episode_limit"] = False
             else:
-                info["episode_limit"] = True    # the next state will not be masked out
+                info["episode_limit"] = True
 
-        return reward_n, done_n or truncated_n, info
+        return reward_n, done_n, truncated_n, info
+    
+
+    def normalize_obs_state(self, vector_data):
+        # Assuming data goes from -10 to 10 (both position and velocity)
+        for i, elem in enumerate(vector_data):
+            vector_data[i] = (elem + 10) / 20
+        return vector_data
+    
 
     def get_obs(self):
         """ Returns all agent observat3ions in a list """
         obs_n = []
         for a in range(self.n_agents):
-            obs_n.append(self.get_obs_agent(a))
+            obs_i = self.get_obs_agent(a)
+            if self.normalize_data:
+                obs_i = self.normalize_obs_state(obs_i)
+            obs_n.append(obs_i)
         return obs_n
+
 
     def get_obs_agent(self, agent_id):
         if self.agent_obsk is None:
             return self.env.unwrapped._get_obs()
         else:
-            return build_obs(self.env,
-                                  self.k_dicts[agent_id],
-                                  self.k_categories,
-                                  self.mujoco_globals,
-                                  self.global_categories,
-                                  vec_len=getattr(self, "obs_size", None))
+            obs = build_obs(self.env, self.k_dicts[agent_id], self.k_categories, 
+                                     self.mujoco_globals, self.global_categories, 
+                                     vec_len=getattr(self, "obs_size", None))
+            
+            if self.scenario == 'manyagent_swimmer':
+                if agent_id == 0:
+                    state = self.get_state()
+                    n_segs = self.env.unwrapped.n_controllable_segments
+                    prev_last_joint_pos = state[0]
+                    prev_last_joint_vel = state[n_segs + 3]
+                    linear_velocity = state[n_segs+1 : n_segs + 3]
+                else:
+                    prev_obs = build_obs(self.env, self.k_dicts[agent_id-1], self.k_categories, 
+                                         self.mujoco_globals, self.global_categories) 
+                    prev_last_joint_pos = prev_obs[-2]
+                    prev_last_joint_vel = prev_obs[-1]
+                    linear_velocity = [0, 0]
+                
+                #obs = np.append(obs, [prev_last_joint_pos, prev_last_joint_vel])
+
+            return obs
+
 
     def get_obs_shape(self):
         """ Returns the shape of the observation """
@@ -158,8 +214,11 @@ class MujocoMulti(MultiAgentEnv):
 
 
     def get_state(self, team=None):
-        # TODO: May want global states for different teams (so cannot see what the other team is communicating e.g.)
-        return self.env.unwrapped._get_obs()
+        state = self.env.unwrapped._get_obs()
+        if self.normalize_data:
+            state = self.normalize_obs_state(state)
+        return state
+
 
     def get_state_shape(self):
         """ Returns the shape of the state"""
@@ -184,10 +243,10 @@ class MujocoMulti(MultiAgentEnv):
     def get_agg_stats(self, stats):
         return {}
 
-    def reset(self, **kwargs):
+    def reset(self):
         """ Returns initial observations and states"""
         self.steps = 0
-        self.timelimit_env.reset()
+        self.timelimit_env.reset(seed=self.seed_)
         return self.get_obs()
 
     def render(self, **kwargs):

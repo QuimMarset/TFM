@@ -44,7 +44,7 @@ class COMACritic(nn.Module):
         inputs.append(actions * agent_mask.unsqueeze(0).unsqueeze(0))
 
         # last actions
-        if self.args.obs_last_action:
+        if self.args.add_last_action:
             if t == 0:
                 inputs.append(th.zeros_like(batch["actions_onehot"][:, 0:1]).view(bs, max_t, 1, -1).repeat(1, 1, self.n_agents, 1))
             elif isinstance(t, int):
@@ -54,7 +54,7 @@ class COMACritic(nn.Module):
                 last_actions = last_actions.view(bs, max_t, 1, -1).repeat(1, 1, self.n_agents, 1)
                 inputs.append(last_actions)
 
-        if self.args.obs_agent_id:
+        if self.args.add_agent_id:
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).unsqueeze(0).expand(bs, max_t, -1, -1))
 
         inputs = th.cat([x.reshape(bs, max_t, self.n_agents, -1) for x in inputs], dim=-1)
@@ -69,9 +69,9 @@ class COMACritic(nn.Module):
         # actions
         input_shape += scheme["actions_onehot"]["vshape"][0] * self.n_agents
         # last action
-        if self.args.obs_last_action:
+        if self.args.add_last_action:
             input_shape += scheme["actions_onehot"]["vshape"][0] * self.n_agents
         # agent id
-        if self.args.obs_agent_id:
+        if self.args.add_agent_id:
             input_shape += self.n_agents
         return input_shape

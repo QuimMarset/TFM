@@ -1,0 +1,15 @@
+env: "mujoco_multi_farama"
+
+env_args:
+    scenario: "ManySegmentSwimmer"
+    agent_conf: "2x2"
+    agent_obsk: 0
+    #render_mode: human
+
+repetitions: 5
+
+test_interval: 20000
+test_nepisode: 10
+log_interval: 5000
+runner_log_interval: 5000
+learner_log_interval: 5000

@@ -1,9 +1,11 @@
+import os
 from os.path import join, isdir
 from os import makedirs, listdir
 import collections
 import yaml
 import numpy as np
 import torch
+import random
 from utils.constant_paths import *
 
 
@@ -57,26 +59,60 @@ def get_number_subfolders(path):
     return sum(isdir(join(path, elem)) for elem in listdir(path))
 
 
+def _create_new_numbered_folder(parent_folder_path):
+    new_folder_num = get_number_subfolders(parent_folder_path) + 1
+    created = False
+    while not created:
+        try:
+            new_path = join(parent_folder_path, f'experiment_{new_folder_num}')
+            makedirs(new_path)
+            created = True
+        except OSError:
+            # Path already exists
+            print(f'Path {new_path} already exists')
+            new_folder_num += 1
+    return new_path
+
+
 def create_new_experiment(env_name, algorithm_name):
     path = join(results_path, env_name, algorithm_name)
+    # Create parent folder if not exists (i.e. env_name/alg_name)
     makedirs(path, exist_ok=True)
-    num_experiments = get_number_subfolders(path)
-    path = join(path, f'run_{num_experiments + 1}')
-    makedirs(path, exist_ok=True)
-    return path
+    return _create_new_numbered_folder(path)
 
 
 def create_new_experiment_run(experiment_path, num_run):
-    path = join(experiment_path, str(num_run))
+    path = join(experiment_path, 'run_' + str(num_run))
     makedirs(path, exist_ok=True)
     return path
 
 
-def set_random_seed():
-    seed = np.random.randint(0, 99999)
+def get_random_seed():
+    return np.random.randint(0, 99999)
+
+
+def set_random_seed(seed):
     np.random.seed(seed)
+    random.seed(seed)
     torch.manual_seed(seed)
-    return seed
+    torch.cuda.manual_seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+
+
+def parse_dict(string_dict):
+    dict = {}
+    string_dict = string_dict[1:-1]
+    split = string_dict.split(',')
+    for pair in split:
+        key_value_split = pair.split(':')
+        key = key_value_split[0].strip()
+        value = set_correct_type(key_value_split[1].strip())
+        dict[key] = value
+    return dict
 
 
 def set_correct_type(string_value):
@@ -88,6 +124,8 @@ def set_correct_type(string_value):
         return True
     elif string_value == 'False':
         return False
+    elif string_value[0] == '{' and string_value[-1] == '}':
+        return parse_dict(string_value)
     return string_value
 
 
