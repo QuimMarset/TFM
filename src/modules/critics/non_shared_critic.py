@@ -13,6 +13,13 @@ class NonSharedCritic(NonSharedAgent):
         self.n_agents = args.n_agents
         input_shape = self._process_input_shape(input_shape)
         self.agents = th.nn.ModuleList([agent_class(input_shape, action_shape, args) for _ in range(self.n_agents)])
+        
+
+    def _process_input_shape(self, input_shape):
+        # Remove the agent IDs if added (non-shared agents do not need it)
+        if self.args.critic_add_agent_id:
+            return input_shape - self.n_agents
+        return input_shape
     
 
     def forward(self, history, hidden_state, actions):

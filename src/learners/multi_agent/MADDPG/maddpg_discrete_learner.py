@@ -1,5 +1,4 @@
 import torch as th
-from components.standarize_stream import RunningMeanStd
 from learners.multi_agent.MADDPG.maddpg_learner import MADDPGLearner
 
 
@@ -62,10 +61,6 @@ class MADDPGDiscreteLearner(MADDPGLearner):
         mask_elems = mask.sum().item()
         batch_size = batch.batch_size
 
-        if self.args.standardise_rewards:
-            self.rew_ms.update(rewards)
-            rewards = (rewards - self.rew_ms.mean) / th.sqrt(self.rew_ms.var)
-
         actions = actions.view(batch_size, -1, 1, self.n_agents * self.args.n_discrete_actions).expand(-1, -1, self.n_agents, -1)
         q_taken = self.critic.forward(batch, actions[:, :-1].detach())
 
@@ -73,14 +68,7 @@ class MADDPGDiscreteLearner(MADDPGLearner):
         target_actions = self._compute_target_actions(batch, t_env)
         target_vals = self.target_critic.forward(batch, target_actions.detach())
 
-        if self.args.standardise_returns:
-            target_vals = target_vals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
-
         targets = rewards.reshape(-1, 1) + self.args.gamma * (1 - terminated.reshape(-1, 1)) * target_vals.reshape(-1, 1).detach()
-
-        if self.args.standardise_returns:
-            self.ret_ms.update(targets)
-            targets = (targets - self.ret_ms.mean) / th.sqrt(self.ret_ms.var)
 
         td_error = (q_taken.view(-1, 1) - targets.detach())
         masked_td_error = td_error * mask.reshape(-1, 1)

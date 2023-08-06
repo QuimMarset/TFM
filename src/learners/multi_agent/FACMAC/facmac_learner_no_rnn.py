@@ -18,7 +18,7 @@ class FACMACLearnerNoRNN(BaseActorCriticLearner):
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
 
-        target_actions = self.target_actor.forward(batch, 1)
+        target_actions = self.target_actor.forward(batch, -1)
         target_qs = self._compute_target_qs(batch, target_actions)
         qs = self._compute_qs(batch)
 
@@ -43,16 +43,16 @@ class FACMACLearnerNoRNN(BaseActorCriticLearner):
 
 
     def _compute_target_qs(self, batch, target_actions):
-        ind_target_qs = self.target_critic.forward(batch, 1, target_actions.detach())
-        joint_target_qs = self.target_mixer(ind_target_qs, batch['state'][:, 1:2])
-        return joint_target_qs.view(batch.batch_size, 1, 1)
+        ind_target_qs = self.target_critic.forward(batch, -1, target_actions.detach())
+        joint_target_qs = self.target_mixer(ind_target_qs, batch['state'][:, -1:])
+        return joint_target_qs
 
 
     def _compute_qs(self, batch):
         actions = batch['actions'][:, 0]
         ind_qs = self.critic.forward(batch, 0, actions)
         joint_qs = self.mixer(ind_qs, batch["state"][:, 0:1])
-        return joint_qs.view(batch.batch_size, 1, 1)
+        return joint_qs
 
 
     def compute_actor_loss(self, batch, t_env):
@@ -63,11 +63,8 @@ class FACMACLearnerNoRNN(BaseActorCriticLearner):
 
         ind_qs = self.critic.forward(batch, 0, actions)
 
-        if self.args.update_actor_with_joint_qs:
-            qs = self.mixer(ind_qs, batch["state"][:, 0:1])
-        else:
-            qs = ind_qs
-           
+        qs = self.mixer(ind_qs, batch["state"][:, 0:1])
+            
         actions_regularization_weight = 1e-3
         if not self.args.actions_regularization:
             actions_regularization_weight = 0

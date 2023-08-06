@@ -73,7 +73,7 @@ class ContinuousTransformerLearner(BaseActorCriticLearner):
             qvals.append(mixer_out)
 
         qvals = th.stack(qvals, dim=1)
-        return qvals.view(batch.batch_size, -1, 1)
+        return qvals
 
 
     def _compute_critic_target_joined_qvalues(self, batch):
@@ -95,7 +95,7 @@ class ContinuousTransformerLearner(BaseActorCriticLearner):
             target_qvals.append(target_mixer_out)
         
         target_qvals = th.stack(target_qvals, dim=1)
-        return target_qvals.view(batch.batch_size, -1, 1)
+        return target_qvals
 
 
     def compute_actor_loss(self, batch, t_env):

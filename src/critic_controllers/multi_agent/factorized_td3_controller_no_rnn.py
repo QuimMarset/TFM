@@ -9,20 +9,17 @@ class FactorizedTD3CriticControllerNoRNN(FactorizedCriticControllerNoRNN):
     def forward(self, ep_batch, t, actions):
         # (b, n_agents, -1)
         inputs = self._build_inputs(ep_batch, t)
-
+        # Both (b, n_agents, 1)
         critic_1_outs, critic_2_outs, self.hidden_states = self.critic(inputs, self.hidden_states, actions)
-        critic_1_outs = critic_1_outs.view(ep_batch.batch_size, self.n_agents, 1)
-        critic_2_outs = critic_2_outs.view(ep_batch.batch_size, self.n_agents, 1)
-
         return critic_1_outs, critic_2_outs
 
 
     def forward_first(self, ep_batch, t, actions):
         # (b, n_agents, -1)
         input = self._build_inputs(ep_batch, t)
-
+        # (b, n_agents, 1)
         critic_1_outs, _, self.hidden_states = self.critic(input, self.hidden_states, actions)
-        return critic_1_outs.view(ep_batch.batch_size, self.n_agents, 1)
+        return critic_1_outs
     
 
     def init_hidden(self, batch_size):

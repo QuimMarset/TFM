@@ -13,17 +13,21 @@ class MADDPGLearner(BaseActorCriticLearner):
 
     def compute_actor_loss(self, batch, t_env):
         mask = batch["filled"][:, :-1].float()
-        
-        actions = self.actor.forward(batch, 0)
-        actions = self._replicate_actions(actions)
-        actions = self._detach_other_agent_actions(actions)
+        actions_buffer = batch["actions"][:, 0]
+        loss = 0
 
-        qs = self.critic.forward(batch, 0, actions)
+        actions_policy = self.actor.forward(batch, 0)
 
-        mask = mask.expand_as(qs)
-        mask_elems = mask.sum().item()
+        for i in range(self.n_agents):
+            actions = self._combine_actions(actions_buffer, actions_policy, i)
+            qs_i = self.critic.forward(batch, 0, actions)
 
-        loss = - (qs * mask).sum() / mask_elems
+            mask = mask.expand_as(qs_i)
+            mask_elems = mask.sum().item()
+
+            loss += - (qs_i * mask).sum() / mask_elems
+
+        loss /= self.n_agents
 
         actor_metrics = {
             'actor_loss' : loss.item(),
@@ -33,19 +37,15 @@ class MADDPGLearner(BaseActorCriticLearner):
 
     def compute_critic_loss(self, batch, t_env):
         rewards = batch["reward"][:, :-1]
-        actions = batch["actions"][:, :-1]
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
-
-        actions = self._replicate_actions(actions)
+        actions = batch["actions"][:, 0]
         
-        target_actions = self.actor.forward(batch, 1)
-        target_actions = self._replicate_actions(target_actions)
-
-        target_qs = self.target_critic.forward(batch, 1, target_actions.detach())
+        target_actions = self.actor.forward(batch, -1)
+        target_qs = self.target_critic.forward(batch, -1, target_actions.detach())
         qs = self.critic.forward(batch, 0, actions.detach())
 
-        targets = rewards.expand_as(target_qs) + self.args.gamma * (1 - terminated.expand_as(target_qs)) * target_qs.detach()
+        targets = rewards + self.args.gamma * (1 - terminated) * target_qs.detach()
 
         mask = mask.expand_as(targets)
         mask_elems = mask.sum().item()
@@ -62,29 +62,18 @@ class MADDPGLearner(BaseActorCriticLearner):
         }
         return loss, critic_metrics
     
-    
-    def _replicate_actions(self, actions):
-        # (b, n_agents, action_shape) -> (b, n_agents, n_agents * action_shape)
-        batch_size = actions.shape[0]
-        actions = actions.view(batch_size, 1, self.n_agents * self.action_shape)
-        return actions.expand(-1, self.n_agents, -1)
-    
 
-    def _detach_other_agent_actions(self, actions):
-        detached_actions = []
-        
+    def _combine_actions(self, actions_buffer, actions_policy, agent_index):
+        # Both actions -> (b, n_agents, *action_shape)
+        actions = []
         for i in range(self.n_agents):
 
-            temp_action = th.split(actions[:, i, :], self.action_shape, dim=1)
-            actions_i = []
+            if i != agent_index:
+                actions_i = actions_buffer[:, i:i+1].detach().clone()
+            else:
+                actions_i = actions_policy[:, i:i+1]
+
+            actions.append(actions_i)
             
-            for j in range(self.n_agents):
-                if i == j:
-                    actions_i.append(temp_action[j])
-                else:
-                    actions_i.append(temp_action[j].detach())
-            
-            actions_i = th.cat(actions_i, dim=-1)
-            detached_actions.append(actions_i.unsqueeze(1))
-        
-        return th.cat(detached_actions, dim=1)
+        actions = th.cat(actions, dim=1)
+        return actions

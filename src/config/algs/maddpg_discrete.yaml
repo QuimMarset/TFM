@@ -2,7 +2,7 @@
 
 name: "maddpg_discrete"
 
-seed: 1412
+seed: 0
 
 add_agent_id: True
 add_last_action: True
@@ -11,20 +11,10 @@ critic_add_agent_id: True
 critic_obs_individual_obs: False
 
 runner: "parallel"
-batch_size_run: 8
-batch_size: 50
+batch_size_run: 1
+batch_size: 5
 buffer_size: 4000
 t_max: 1000000
-
-double_q: False
-
-exploration_mode: "gaussian"
-start_steps: 200000
-stop_noise_step: 400000
-act_noise: 0.2
-ou_theta: 0.15
-ou_sigma: 0.2
-ou_noise_scale: 0.3
 
 gamma: 0.99
 
@@ -52,14 +42,10 @@ target_update_mode: "soft"
 target_update_tau: 0.005
 hard_update_interval: 200
 
-test_interval: 10000
-test_nepisode: 100
-
 save_model: False
 save_model_interval: 50000
 
-standardise_returns: False
-standardise_rewards: False
+save_model_end: True
 
 #load_step: 561000
 #checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/facmac_pettingzoo/196/models" 

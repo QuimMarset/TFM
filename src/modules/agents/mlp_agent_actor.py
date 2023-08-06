@@ -17,7 +17,7 @@ class MLPActorAgent(nn.Module):
         return self.fc1.weight.new(1, self.args.hidden_dim).zero_()
 
 
-    def forward(self, inputs, hidden_state, actions=None):
+    def forward(self, inputs, hidden_state):
         # inputs always has 3 dimensions (b, n_agents, -1)
         batch_size = inputs.size(0)
         n_agents = inputs.size(1)

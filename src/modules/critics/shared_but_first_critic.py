@@ -14,6 +14,12 @@ class SharedButFirstCritic(SharedButFirstAgent):
             agent_class(input_shape, action_shape, args),
             agent_class(input_shape, action_shape, args)
         ])
+
+
+    def _process_input_shape(self, input_shape):
+        if self.args.critic_add_agent_id:
+            return input_shape - self.n_agents
+        return input_shape
     
 
     def forward(self, history, hidden_states, actions):

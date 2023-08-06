@@ -38,7 +38,7 @@ class FACMACAgentControllerNoRNN(FACMACAgentController):
         
         if self.args.num_previous_transitions > 0:
             input_shape += scheme["obs"]["vshape"] * self.args.num_previous_transitions
-            input_shape += scheme["actions"]["vshape"][0] * self.args.num_previous_transitions
+            input_shape += scheme["actions"]["vshape"] * self.args.num_previous_transitions
         
         if self.args.add_agent_id:
             input_shape += self.n_agents

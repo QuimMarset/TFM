@@ -1,0 +1,41 @@
+env:  "adaptive_optics"
+
+env_args: 
+    parameter_file: sh_10x10_2m
+    partition: 2 # n_agents
+    partial_observability: False
+    episode_limit: 1000
+    # State
+    s_dm_residual_rl:  False  # Fixed
+    s_dm: True  # Fixed
+    s_dm_residual: True  # Fixed
+    number_of_previous_s_dm: 3  # Fixed
+    number_of_previous_s_dm_residual: 0  # Fixed
+    number_of_previous_s_dm_residual_rl: 0  # Fixed
+    normalization_bool: True  # Fixed
+    dm_std: 10.0  # Fixed
+    dm_residual_std: 10.0  # Fixed
+    # Reward
+    reward_type: log_scalar_actuators  # 2d_actuators or scalar_actuators or log_scalar_actuators
+    number_of_previous_a_for_reward: 0  # Fixed
+    value_action_penalizer: -1  # Fixed
+    # Action
+    action_scale: 10.0  # Fixed
+    # Other
+    filter_state_with_btt: True  # Fixed
+    n_reverse_filtered_from_cmat: 10  # Can change depending on parameter file
+    filter_state_actuator_space_with_btt: True  # Fixed
+    # Mode:  correction or only_rl
+    mode: only_rl  # correction or only_rl
+    # Delayed assignment
+    delayed_assignment: 1  # you could try to change
+    # Reset strehl LE every
+    reset_strehl_every_and_print:  1000  # this is just for print
+
+repetitions:  1
+
+test_interval: 20000
+test_nepisode: 10
+log_interval: 5000
+runner_log_interval: 5000
+learner_log_interval: 5000

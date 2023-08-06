@@ -1,6 +1,6 @@
 import torch as th
 import numpy as np
-from controllers.multi_agent.q_controller import QController
+from controllers.multi_agent.QMIX.q_controller import QController
 
 
 

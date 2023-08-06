@@ -23,7 +23,6 @@ class FACMACTD3LearnerNoRNN(BaseActorCriticLearner):
 
 
     def train(self, batch, t_env):
-        self.t_env = t_env
         critic_metrics = self.train_critic(batch, t_env)
 
         actor_metrics = {}
@@ -44,7 +43,12 @@ class FACMACTD3LearnerNoRNN(BaseActorCriticLearner):
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
 
-        target_actions = self.target_actor.select_target_actions(batch, 1, t_env)
+        if self.args.use_training_steps_to_compute_target_noise:
+            step = self.training_steps
+        else:
+            step = t_env
+
+        target_actions = self.target_actor.select_target_actions(batch, 1, step)
         target_qs = self._compute_target_qs(batch, target_actions)
         qs_1, qs_2 = self._compute_qs(batch)
 

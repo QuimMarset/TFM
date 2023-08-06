@@ -36,5 +36,5 @@ class DDPGController(BaseCriticController):
     
 
     def _get_action_shape(self, scheme):
-        return scheme["actions"]["vshape"][0] * self.n_agents
+        return scheme["actions"]["vshape"] * self.n_agents
     

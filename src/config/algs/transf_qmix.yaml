@@ -13,29 +13,29 @@ add_agent_id: False
 add_last_action: False
 
 runner: "parallel"
-batch_size_run: 8
-t_max: 2000000
-buffer_size: 5000 
-batch_size: 5
+batch_size_run: 1
+t_max: 100000
+buffer_size: 2000 
+batch_size: 20
 
-start_steps: 10000
-sigma_start: 0.2
+start_steps: 0
+sigma_start: 0.5
 sigma_finish: 0.05
-sigma_anneal_time: 2000000
+sigma_anneal_time: 100000
 
 gamma: 0.99
 
-lr: 0.001
-critic_lr: 0.001
+lr: 0.0001
+critic_lr: 0.0001
 lr_decay_actor: False
 lr_decay_critic: False
 
-grad_norm_clip_actor: 0.5
-grad_norm_clip_critic: 0.5
+grad_norm_clip_actor: 50
+grad_norm_clip_critic: 50
 
 #optimizer_epsilon: 0.01
 
-td_lambda: 0.6
+td_lambda: 0.8
 
 learner: "continuous_transformer_learner"
 mac: "transformer_continuous_mac"
@@ -43,7 +43,7 @@ agent: "transformer_actor"
 mixer: "transformer_continuous"
 
 # parameters of the transformer agent
-emb_dim: 16 # embedding dimension of transformer
+emb_dim: 32 # embedding dimension of transformer
 num_heads: 4 # head number of transformer
 num_blocks: 2 # block number of transformer
 ff_hidden_mult: 2 # relative dimension of hidden layer of ff after attention
@@ -53,7 +53,7 @@ use_entity_embeddings: False # learn an embedding for each single entity; will b
 entity_emb_dim: 2
 
 # parameters of the transformer mixer
-mixer_emb_dim: 16 # embedding dimension of transformer
+mixer_emb_dim: 32 # embedding dimension of transformer
 mixer_heads: 4 # head number of transformer
 mixer_depth: 2 # block number of transformer
 qmix_pos_func: "abs" # function to impose monotonic constraint

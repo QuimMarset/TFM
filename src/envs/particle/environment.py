@@ -16,7 +16,7 @@ class MultiAgentEnv(gym.Env):
 
     def __init__(self, world, reset_callback=None, reward_callback=None,
                  observation_callback=None, full_obs_callback=None, info_callback=None,
-                 done_callback=None, shared_viewer=True):
+                 done_callback=None, state_callback=None, shared_viewer=True):
 
         self.world = world
         self.agents = self.world.policy_agents
@@ -26,6 +26,8 @@ class MultiAgentEnv(gym.Env):
         self.reset_callback = reset_callback
         self.reward_callback = reward_callback
         self.observation_callback = observation_callback
+        self.full_obs_callback = full_obs_callback
+        self.state_callback = state_callback
         self.info_callback = info_callback
         self.done_callback = done_callback
         # environment parameters
@@ -138,6 +140,16 @@ class MultiAgentEnv(gym.Env):
         if self.observation_callback is None:
             return np.zeros(0)
         return self.observation_callback(agent, self.world)
+    
+    def _get_full_obs(self, agent):
+        if self.full_obs_callback is None:
+            return np.zeros(0)
+        return self.full_obs_callback(agent, self.world)
+    
+    def _get_state(self):
+        if self.state_callback is None:
+            return np.zeros(0)
+        return self.state_callback(self.world)
 
     # get dones for a particular agent
     # unused right now -- agents are allowed to go beyond the viewing screen

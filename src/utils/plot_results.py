@@ -1,58 +1,133 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 from utils.results_utils import *
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
 
-def plot_test_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name):
+def get_manyagent_swimmer_return_y_ticks(algorithm_name, agent_conf):
+    if agent_conf == '2x2':
+        if algorithm_name == 'td3':
+            return range(-150, 501, 50)
+        else:
+            return range(-150, 301, 50)
+    elif agent_conf == '4x2':
+        return range(-150, 501, 50)
+    elif agent_conf == '10x2':
+        return range(-350, 601, 50)
+    else:
+        raise ValueError(f'Ticks not defined for {agent_conf}')
+
+
+def get_episode_return_plot_y_ticks(env_name, algorithm_name, agent_conf=None):
+    if env_name == 'Swimmer-v4':
+        return range(-150, 401, 50)
+    elif env_name == 'manyagent_swimmer' or env_name == 'ManySegmentSwimmer':
+        return get_manyagent_swimmer_return_y_ticks(algorithm_name, agent_conf)
+    elif env_name == 'pistonball':
+        return range(0, 101, 20)
+    else:
+        raise ValueError(f'Unknown environment {env_name}')
+
+
+def get_episode_length_plot_y_ticks(env_name):
+    if env_name == 'Swimmer-v4' or env_name == 'manyagent_swimmer' or env_name == 'ManySegmentSwimmer':
+        return None
+    elif env_name == 'pistonball':
+        return range(0, 126, 25)
+    else:
+        raise ValueError(f'Unknown environment {env_name}')
+
+
+def stylize_algorithm_name(algorithm_name):
+    if algorithm_name == 'qmix':
+        return 'QMIX'
+    elif algorithm_name == 'facmac':
+        return 'FACMAC'
+    elif algorithm_name == 'facmac_td3':
+        return 'FACMAC-TD3'
+    elif algorithm_name == 'td3':
+        return 'TD3'
+    else:
+        raise ValueError(f'Unknown algorithm name {algorithm_name}')
+    
+
+def stylize_environment_name(env_name, agent_conf=None):
+    if env_name == 'pistonball':
+        return 'Pistonball'
+    elif env_name == 'Swimmer-v4':
+        return env_name
+    elif env_name == 'manyagent_swimmer':
+        return f'ManyAgent Swimmer {agent_conf}'
+    elif env_name == 'ManySegmentSwimmer':
+        return f'ManySegment Swimmer {agent_conf}'
+    else:
+        raise ValueError(f'Unknown environment name {env_name}')
+
+
+def plot_metric_values_over_runs(folder_path, num_repetitions, metric_name, y_label, plot_title, y_ticks_range):
     sns.set(style="whitegrid")
-    steps = get_saved_steps(experiment_path, num_repetitions, 'test_return_mean')
-    #means, stds = compute_mean_std_runs(experiment_path, num_repetitions, 'test_return_mean')
-    means, mins, maxs = compute_mean_min_max_runs(experiment_path, num_repetitions, 'test_return_mean')
     plt.figure(figsize=(10, 6))
-    plt.plot(steps, means, label='Mean', color='orange')
-    plt.fill_between(steps, mins, maxs, alpha=0.3, label='[Min, Max]')
-    plt.title(f'Average test return on {env_name} using {algorithm_name}')
-    plt.xlabel('Step')
-    plt.ylabel('Test Episode Return')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(experiment_path, 'episode_test_return.png'))
-    plt.close()
-    return steps, means
 
+    steps = get_min_steps(folder_path, num_repetitions, metric_name)
+    mean_values = compute_mean_value_over_runs(folder_path, num_repetitions, metric_name, len(steps))
 
-def plot_test_episode_length_over_runs(experiment_path, num_repetitions, env_name, algorithm_name):
-    sns.set(style="whitegrid")
-    steps = get_saved_steps(experiment_path, num_repetitions, 'test_ep_length_mean')
-    #means, stds = compute_mean_std_runs(experiment_path, num_repetitions, 'test_ep_length_mean')
-    means, mins, maxs = compute_mean_min_max_runs(experiment_path, num_repetitions, 'test_ep_length_mean')
-    plt.figure(figsize=(10, 6))
-    plt.plot(steps, means, label='Mean', color='orange')
-    plt.fill_between(steps, mins, maxs, alpha=0.3, label='[Min, Max]')
-    plt.title(f'Average test episode length on {env_name} using {algorithm_name}')
-    plt.xlabel('Step')
-    plt.ylabel('Test Episode Return')
+    for i in range(1, num_repetitions + 1):
+        values_i = load_results(folder_path, i)[metric_name]['values'][:len(steps)]
+        plt.plot(steps, values_i, color=sns.color_palette("mako")[i], label=f'Run {i}', alpha=0.6)
+
+    plt.plot(steps, mean_values, color='red', label='Mean')
+    
+    if y_ticks_range is not None:
+        plt.yticks(y_ticks_range)
+    
     plt.legend()
+    plt.title(plot_title)
+    plt.xlabel('Step')
+    plt.ylabel(y_label)
     plt.tight_layout()
-    plt.savefig(os.path.join(experiment_path, 'episode_test_ep_length.png'))
+    plt.savefig(os.path.join(folder_path, f'plot_{metric_name}.png'), dpi=300)
     plt.close()
 
 
-def plot_train_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name):
-    sns.set(style="whitegrid")
-    steps = get_saved_steps(experiment_path, num_repetitions, 'return_mean')
-    #means, stds = compute_mean_std_runs(experiment_path, num_repetitions, 'return_mean')
-    means, mins, maxs = compute_mean_min_max_runs(experiment_path, num_repetitions, 'return_mean')
-    plt.figure(figsize=(10, 6))
-    plt.plot(steps, means, label='Mean', color='orange')
-    plt.fill_between(steps, mins, maxs, alpha=0.3, label='[Min, Max]')
-    plt.title(f'Average train episode return on {env_name} using {algorithm_name}')
-    plt.xlabel('Step')
-    plt.ylabel('Train Episode Return')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(experiment_path, 'steps_train_return.png'))
-    plt.close()
-    return steps, means
+def plot_test_return_over_runs(folder_path, num_repetitions, env_name, algorithm_name):
+    config = load_config(folder_path)
+    agent_conf = config['env_args'].get('agent_conf', None)
+    y_ticks_range = get_episode_return_plot_y_ticks(env_name, algorithm_name, agent_conf)
+    
+    y_label = 'Test Episode Return'
+    algorithm_name = stylize_algorithm_name(algorithm_name)
+    env_name = stylize_environment_name(env_name, agent_conf)
+    plot_title = f'Test episode return on {env_name} using {algorithm_name}'
+    
+    plot_metric_values_over_runs(folder_path, num_repetitions, 'test_return_mean', y_label, 
+                                 plot_title, y_ticks_range)
+    
+
+def plot_train_return_over_runs(folder_path, num_repetitions, env_name, algorithm_name):
+    config = load_config(folder_path)
+    agent_conf = config['env_args'].get('agent_conf', None)
+    y_ticks_range = get_episode_return_plot_y_ticks(env_name, algorithm_name, agent_conf)
+    
+    y_label = 'Train Episode Return'
+    algorithm_name = stylize_algorithm_name(algorithm_name)
+    env_name = stylize_environment_name(env_name, agent_conf)
+    plot_title = f'Train episode return on {env_name} using {algorithm_name}'
+    
+    plot_metric_values_over_runs(folder_path, num_repetitions, 'return_mean', y_label, 
+                                 plot_title, y_ticks_range)
+
+
+def plot_test_episode_length_over_runs(folder_path, num_repetitions, env_name, algorithm_name):
+    config = load_config(folder_path)
+    agent_conf = config['env_args'].get('agent_conf', None)
+    y_ticks_range = get_episode_length_plot_y_ticks(env_name)
+    
+    y_label = 'Test Episode Length'
+    algorithm_name = stylize_algorithm_name(algorithm_name)
+    env_name = stylize_environment_name(env_name, agent_conf)
+    plot_title = f'Test episode length on {env_name} using {algorithm_name}'
+    
+    plot_metric_values_over_runs(folder_path, num_repetitions, 'test_ep_length_mean', y_label, 
+                                 plot_title, y_ticks_range)

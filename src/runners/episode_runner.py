@@ -3,8 +3,7 @@ from functools import partial
 from components.episode_buffer import EpisodeBatch
 import torch as th
 import numpy as np
-import copy
-import time
+
 
 
 class EpisodeRunner:
@@ -30,7 +29,13 @@ class EpisodeRunner:
         self.log_train_stats_t = -1000000
 
     def setup(self, scheme, groups, preprocess, mac):
-        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
+        # Used in the Adaptive Optics environment as reward comes with frame delay
+        if 'delayed_assignment' in self.args.env_args:
+            reward_delay = self.args.env_args['delayed_assignment'] + 2
+        else:
+            reward_delay = 1
+        
+        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + reward_delay,
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
 
@@ -38,7 +43,7 @@ class EpisodeRunner:
         return self.env.get_env_info(self.args)
 
     def save_replay(self):
-        self.env.save_replay()
+        pass
 
     def close_env(self):
         self.env.close()
@@ -89,6 +94,8 @@ class EpisodeRunner:
             self.batch.update(post_transition_data, ts=self.t)
 
             self.t += 1
+            if not test_mode:
+                self.t_env += 1
 
             pre_transition_data = {
                 "state": [self.env.get_state()],
@@ -102,9 +109,6 @@ class EpisodeRunner:
         cur_stats.update({k: cur_stats.get(k, 0) + env_info.get(k, 0) for k in set(cur_stats) | set(env_info)})
         cur_stats["n_episodes"] = 1 + cur_stats.get("n_episodes", 0)
         cur_stats["ep_length"] = self.t + cur_stats.get("ep_length", 0)
-
-        if not test_mode:
-            self.t_env += self.t
 
         cur_returns.append(episode_return)
         self.logger.write_episode_return(episode_return)

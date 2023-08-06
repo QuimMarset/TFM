@@ -68,18 +68,18 @@ def run_sequential(args, logger, save_path):
     scheme = {
         "state": {"vshape": env_info["state_shape"]},
         "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
-        "actions": {"vshape": (env_info['action_shape'], ), "group": "agents", "dtype": actions_dtype},
+        "actions": {"vshape": env_info['action_shape'], "group": "agents", "dtype": actions_dtype},
         "reward": {"vshape": (1,)},
         "terminated": {"vshape": (1,), "dtype": th.uint8},
     }
 
-    if args.buffer_transitions and is_multi_agent_method(args):
+    if args.buffer_transitions and getattr(args, 'num_previous_transitions', 0) > 0 and is_multi_agent_method(args):
         scheme['prev_obs'] = {
             'vshape': env_info['obs_shape'] * args.num_previous_transitions,
             'group' : 'agents'
         }
         scheme['prev_actions'] = {
-            "vshape": (env_info['action_shape'] * args.num_previous_transitions, ), 
+            "vshape": env_info['action_shape'] * args.num_previous_transitions, 
             "group": "agents", 
             "dtype": actions_dtype
         }
@@ -95,7 +95,7 @@ def run_sequential(args, logger, save_path):
             "actions": ("actions_onehot", [OneHot(out_dim=args.n_discrete_actions)])
         }
 
-    max_length = env_info["episode_limit"] + 1 if not args.buffer_transitions else 2
+    max_length = 2 if args.buffer_transitions else env_info["episode_limit"] + 1
     buffer = ReplayBuffer(scheme, groups, args.buffer_size, max_length, preprocess=preprocess, device="cpu")
 
     # Learner
@@ -164,38 +164,44 @@ def run_sequential(args, logger, save_path):
 
     while runner.t_env <= args.t_max:
 
-        episode_batch = runner.run(test_mode=False)
+        episode_batch = runner.run(test_mode=False, **{'learner': learner})
 
-        if args.buffer_transitions:
-            for i in range(episode_batch.batch_size):
-                for t in range(episode_batch.max_seq_length):
-                    buffer.insert_episode_batch(episode_batch[i, t:t+2])
-        else:
-            buffer.insert_episode_batch(episode_batch)
-        
-        if runner.t_env >= args.start_steps and buffer.can_sample(args.batch_size):
+        if args.runner != 'episode_ao':
+
+            if args.buffer_transitions:
+                if args.env == 'adaptive_optics':
+                    update_replay_buffer_adaptive_optics(episode_batch, args, buffer)
+                else:
+                    for i in range(episode_batch.batch_size):
+                        for t in range(episode_batch.max_seq_length):
+                            buffer.insert_episode_batch(episode_batch[i, t:t+2])
+            else:
+                buffer.insert_episode_batch(episode_batch)
             
-            n_batches_to_sample = getattr(args, 'n_batches_to_sample', -1)
-            if n_batches_to_sample == -1:
-                # Sample as many batches as steps performed in the environment
-                n_batches_to_sample = th.sum(episode_batch['filled'][:, :episode_batch.max_seq_length-1]).item()
-            
-            for _ in range(n_batches_to_sample):
+            if runner.t_env >= args.start_steps and buffer.can_sample(args.batch_size):
+                
+                n_batches_to_sample = args.n_batches_to_sample
+                if args.buffer_transitions and n_batches_to_sample == -1:
+                    # Sample as many batches as steps performed in the environment
+                    reward_delay = args.env_args.get('delayed_assignment', 1)
+                    n_batches_to_sample = th.sum(episode_batch['filled'][:, :episode_batch.max_seq_length - reward_delay]).item()
+                
+                for _ in range(n_batches_to_sample):
 
-                episode_sample = buffer.sample(args.batch_size)
+                    episode_sample = buffer.sample(args.batch_size)
 
-                # Truncate batch to only filled timesteps
-                max_ep_t = episode_sample.max_t_filled()
-                episode_sample = episode_sample[:, :max_ep_t]
+                    # Truncate batch to only filled timesteps
+                    max_ep_t = episode_sample.max_t_filled()
+                    episode_sample = episode_sample[:, :max_ep_t]
 
-                if episode_sample.device != args.device:
-                    episode_sample.to(args.device)
+                    if episode_sample.device != args.device:
+                        episode_sample.to(args.device)
 
-                learner.train(episode_sample, runner.t_env)
+                    learner.train(episode_sample, runner.t_env)
                 
         # Execute test runs once in a while
         n_test_runs = max(1, args.test_nepisode // runner.batch_size)
-        if (runner.t_env - last_test_T) / args.test_interval >= 1.0:
+        if runner.t_env >= args.start_steps and runner.t_env - last_test_T >= args.test_interval:
 
             logger.console_logger.info("t_env: {} / {}".format(runner.t_env, args.t_max))
             logger.console_logger.info("Estimated time left: {}. Time passed: {}".format(
@@ -232,10 +238,18 @@ def run_sequential(args, logger, save_path):
     logger.log_date_to_console()
 
 
-def args_sanity_check(config, _log):
+def update_replay_buffer_adaptive_optics(episode_batch, args, buffer):
+    delay = args.env_args['delayed_assignment'] + 2
 
-    # set CUDA flags
-    # config["use_cuda"] = True # Use cuda whenever possible!
+    for i in range(episode_batch.batch_size):
+        for t in range(episode_batch.max_seq_length - delay):
+            
+            reward = [(episode_batch[i, t + delay]['reward'].item(),)]
+            episode_batch.update({'reward' : reward}, ts=t)
+            buffer.insert_episode_batch(episode_batch[i, [t, t + delay]])
+            
+
+def args_sanity_check(config, _log):
     if config["use_cuda"] and not th.cuda.is_available():
         config["use_cuda"] = False
         _log.warning("CUDA flag use_cuda was switched OFF automatically because no CUDA devices are available!")
@@ -244,5 +258,19 @@ def args_sanity_check(config, _log):
         config["test_nepisode"] = config["batch_size_run"]
     else:
         config["test_nepisode"] = (config["test_nepisode"]//config["batch_size_run"]) * config["batch_size_run"]
+
+    if config['env'] == 'adaptive_optics':
+        config['add_agent_id'] = False
+        config['critic_add_agent_id'] = False
+        
+        if 'num_previous_transitions' in config:
+            config['num_previous_transitions'] = 0
+
+        if 'add_last_action' in config:
+            config['add_last_action'] = False
+            config['critic_add_last_action'] = False
+
+        if config['name'] in ['td3', 'ddpg']:
+            config['env_args']['partition'] = 1
 
     return config

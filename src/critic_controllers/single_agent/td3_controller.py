@@ -9,11 +9,8 @@ class TD3Controller(DDPGController):
         # actions -> (b, 1, n_agents * action_shape)
         # (b, 1, state_shape)
         input = self._build_inputs(ep_batch, t)
-        
+        # Both (b, 1, 1)        
         critic_1_outs, critic_2_outs, self.hidden_states = self.critic(input, self.hidden_states, actions)
-        critic_1_outs = critic_1_outs.view(ep_batch.batch_size, 1, 1)
-        critic_2_outs = critic_2_outs.view(ep_batch.batch_size, 1, 1)
-
         return critic_1_outs, critic_2_outs
     
 
@@ -21,9 +18,9 @@ class TD3Controller(DDPGController):
         # actions -> (b, 1, n_agents * action_shape)
         # (b, 1, state_shape)
         input = self._build_inputs(ep_batch, t)
-
+        # (b, 1, 1), (b, 1, hidden_dim)
         critic_1_outs, _, self.hidden_states = self.critic(input, self.hidden_states, actions)
-        return critic_1_outs.view(ep_batch.batch_size, 1, 1)
+        return critic_1_outs
     
 
     def init_hidden(self, batch_size):

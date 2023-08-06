@@ -10,10 +10,10 @@ env_args:
   partial_obs: True
 
 
-log_interval: 10000
-runner_log_interval: 10000
-learner_log_interval: 10000
-test_interval: 10000
+log_interval: 20000
+runner_log_interval: 20000
+learner_log_interval: 20000
+test_interval: 20000
 test_nepisode: 100
 
-repetitions: 5
+repetitions: 1

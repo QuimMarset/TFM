@@ -20,7 +20,7 @@ class FactorizedCriticController(BaseCriticController):
     
 
     def _get_action_shape(self, scheme):
-        return scheme["actions"]["vshape"][0]
+        return scheme["actions"]["vshape"]
 
 
     def forward(self, ep_batch, t, actions):

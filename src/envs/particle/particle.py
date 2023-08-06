@@ -45,7 +45,8 @@ class Particle(MultiAgentEnv):
                                                self.scenario.reset_world,
                                                self.scenario.reward,
                                                self.scenario.observation,
-                                               self.scenario.observation)
+                                               self.scenario.observation,
+                                               state_callback=self.scenario.state)
 
         self.glob_args = kwargs.get("args")
         self._set_entity_attributes()
@@ -112,9 +113,18 @@ class Particle(MultiAgentEnv):
     def get_obs_shape(self):
         """ Returns the shape of the observation """
         return max([o.shape[0] for o in self.env.observation_space])
+    
+    def get_full_obs_agent(self, agent_id):
+        obs = self.env._get_full_obs(self.world.policy_agents[agent_id])
+        return obs
 
     def get_state(self, team=None):
-        state = np.concatenate(self.get_obs())
+        obs_n = []
+        for i, _ in enumerate(self.world.policy_agents):
+            obs = self.get_full_obs_agent(i)
+            obs_n.append(obs)
+        state = np.concatenate(obs_n)
+        #return self.env._get_state()
         return state
 
     def get_state_shape(self):

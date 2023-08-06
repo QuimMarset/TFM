@@ -2,7 +2,7 @@ import torch as th
 from torch.autograd import Variable
 import torch.nn.functional as F
 from controllers.base_controller import BaseController
-from controllers.multi_agent.q_controller import QController
+from controllers.multi_agent.QMIX.q_controller import QController
 
 
 
@@ -79,5 +79,5 @@ class MADDPGDiscreteController(QController):
     def forward(self, ep_batch, t):
         agent_inputs = self._build_inputs(ep_batch, t)
         logits, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-        return logits.view(ep_batch.batch_size, self.n_agents, -1)
+        return logits
     

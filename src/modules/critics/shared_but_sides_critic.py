@@ -19,6 +19,12 @@ class SharedButSidesCritic(SharedButSidesAgent):
              agent_class(input_shape, action_shape, args),
              agent_class(side_shape, action_shape, args)
              ])
+        
+    
+    def _compute_side_input_shape(self, input_shape):
+        if self.args.critic_add_agent_id:
+            return input_shape - self.n_agents
+        return input_shape
     
 
     def _forward_side(self, agent, side_history, side_hidden_states, actions):

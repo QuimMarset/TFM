@@ -2,9 +2,7 @@ import copy
 import torch as th
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
-from components.standarize_stream import RunningMeanStd
 from controllers import REGISTRY as agent_registry
-from modules.mixers import mixer_factory
 
 
 
@@ -18,7 +16,6 @@ class BaseQLearner:
         self._create_agents(scheme, args)
         self._create_mixers(args)
         self._create_optimizer(args)
-        self._create_standarizers(args)
         self.last_log_step = -self.args.learner_log_interval - 1
         self.last_hard_update_step = -self.args.hard_update_interval - 1
         self.training_steps = 0
@@ -39,14 +36,6 @@ class BaseQLearner:
         self.optimizer = Adam(params=self.agent_params, lr=args.lr, weight_decay=args.l2_reg_coef, eps=args.optimizer_epsilon)
         if args.lr_decay:
             self.agent_scheduler = StepLR(self.optimizer, step_size=args.lr_decay_episodes, gamma=args.lr_decay_gamma)
-
-
-    def _create_standarizers(self, args):
-        device = "cuda" if args.use_cuda else "cpu"
-        if self.args.standardise_returns:
-            self.ret_ms = RunningMeanStd(shape=(args.n_agents,), device=device)
-        if self.args.standardise_rewards:
-            self.rew_ms = RunningMeanStd(shape=(1,), device=device)
 
 
     def train(self, batch, t_env):

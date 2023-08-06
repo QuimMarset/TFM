@@ -16,7 +16,7 @@ class FactorizedCriticControllerNoRNN(FactorizedCriticController):
 
         if self.args.critic_use_previous_transitions and self.args.num_previous_transitions > 0:
             input_shape += scheme["obs"]["vshape"] * self.args.num_previous_transitions
-            input_shape += scheme["actions"]["vshape"][0] * self.args.num_previous_transitions
+            input_shape += scheme["actions"]["vshape"] * self.args.num_previous_transitions
         
         if self.args.critic_add_agent_id:
             input_shape += self.n_agents
@@ -25,7 +25,7 @@ class FactorizedCriticControllerNoRNN(FactorizedCriticController):
         
 
     def _get_action_shape(self, scheme):
-        return scheme["actions"]["vshape"][0]
+        return scheme["actions"]["vshape"]
      
 
     def forward(self, ep_batch, step, actions):

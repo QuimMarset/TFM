@@ -7,9 +7,9 @@ import numpy as np
 class ActionClamper:
 
     def __init__(self, action_spaces, device):
-        self.low_actions  = th.cat([th.tensor(action_space.low).view(1, -1) 
+        self.low_actions  = th.cat([th.tensor(action_space.low).unsqueeze(0) 
                                     for action_space in action_spaces], dim=0).to(device)
-        self.high_actions = th.cat([th.tensor(action_space.high).view(1, -1) 
+        self.high_actions = th.cat([th.tensor(action_space.high).unsqueeze(0)
                                     for action_space in action_spaces], dim=0).to(device)
         
 
@@ -69,3 +69,20 @@ class GaussianClampedNoise(GaussianNoise):
         actions = agent_inputs + clamped_noise
         return actions
     
+
+class GaussianClampedDecayNoise(GaussianNoise):
+
+
+    def __init__(self, clipping_start, clipping_finish, sigma_start, sigma_finish, sigma_anneal_time, start_steps):
+        super().__init__(sigma_start, sigma_finish, sigma_anneal_time, start_steps)
+        sigma_anneal_time = sigma_anneal_time + start_steps
+        self.noise_clipping_schedule = DecayThenFlatSchedule(clipping_start, clipping_finish, sigma_anneal_time, decay="linear")
+
+
+    def add_noise(self, agent_inputs, t_env):
+        self.sigma = self.schedule.eval(t_env)
+        self.clipped_noise = self.noise_clipping_schedule.eval(t_env)
+        noise = th.randn_like(agent_inputs) * self.sigma
+        clamped_noise = th.clamp(noise, -self.clipped_noise, self.clipped_noise)
+        actions = agent_inputs + clamped_noise
+        return actions

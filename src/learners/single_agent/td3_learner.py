@@ -32,9 +32,10 @@ class TD3Learner(DDPGLearner):
         mask_elems = mask.sum().item()
         
         actions = self.actor.select_actions_train(batch, 0)
-        qs_1 = self.critic.forward_first(batch, 0, actions)
+        qs_1, qs_2 = self.critic.forward(batch, 0, actions)
+        min_qs = th.min(qs_1, qs_2)
 
-        loss = - (qs_1 * mask).sum() / mask_elems
+        loss = - (min_qs * mask).sum() / mask_elems
 
         actor_metrics = {
             'actor_loss' : loss.item(),
@@ -48,11 +49,19 @@ class TD3Learner(DDPGLearner):
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
         mask_elems = mask.sum().item()
+
+        if self.args.use_training_steps_to_compute_target_noise:
+            step = self.training_steps
+        else:
+            step = t_env
         
-        target_actions = self.target_actor.select_target_actions(batch, 1, t_env)
+        target_actions = self.target_actor.select_target_actions(batch, 1, step)
         target_1_qs, target_2_qs = self.target_critic.forward(batch, 1, target_actions.detach())
 
-        actions = batch["actions"][:, 0].view(batch.batch_size, 1, self.action_shape * self.n_agents)
+        actions = batch["actions"][:, 0]
+        if self.args.env != 'adaptive_optics':
+            actions = actions.view(batch.batch_size, 1, self.action_shape * self.n_agents)
+        
         qs_1, qs_2 = self.critic.forward(batch, 0, actions.detach())
         
         min_targets = th.min(target_1_qs, target_2_qs)

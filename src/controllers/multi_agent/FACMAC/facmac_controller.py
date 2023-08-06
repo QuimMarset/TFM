@@ -25,7 +25,7 @@ class FACMACAgentController(BaseController):
     def forward(self, ep_batch, t):
         agent_inputs = self._build_inputs(ep_batch, t)
         actions, self.hidden_states = self.agent(agent_inputs, self.hidden_states)                
-        return actions.view(ep_batch.batch_size, self.n_agents, -1)
+        return actions
 
 
     def _build_inputs(self, batch, t):
@@ -42,14 +42,14 @@ class FACMACAgentController(BaseController):
         if self.args.add_agent_id:
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
 
-        inputs = th.cat([x.reshape(bs, self.n_agents, -1) for x in inputs], dim=-1)
+        inputs = th.cat(inputs, dim=-1)
         return inputs
 
 
     def _get_input_shape(self, scheme):
         input_shape = scheme["obs"]["vshape"]
         if self.args.add_last_action:
-            input_shape += scheme["actions"]["vshape"][0]
+            input_shape += scheme["actions"]["vshape"]
         if self.args.add_agent_id:
             input_shape += self.n_agents
         return input_shape

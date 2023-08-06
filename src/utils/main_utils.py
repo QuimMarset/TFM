@@ -40,14 +40,18 @@ def update_config_recursive(default_config, loaded_config):
 
 
 def get_env_name(config):
-    if 'key' in config['env_args']:
-        env_name = config['env_args']['key']
+    if 'env_name' in config['env_args']:
+        env_name = config['env_args']['env_name']
+    
     elif 'scenario' in config['env_args']:
         env_name = config['env_args']['scenario']
+    
     elif 'scenario_name' in config['env_args']:
         env_name = config['env_args']['scenario_name']
+    
     else:
         env_name = config['env']
+    
     return env_name
 
 

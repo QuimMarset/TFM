@@ -2,7 +2,6 @@ import torch as th
 import copy
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
-from components.standarize_stream import RunningMeanStd
 from controllers import REGISTRY as actor_REGISTRY
 from critic_controllers import REGISTRY as critic_REGISTRY
 
@@ -19,7 +18,6 @@ class BaseActorCriticLearner:
         self.create_critics(scheme, args)
         self.create_mixers(args)
         self._create_optimizers(args)
-        self._create_standarizers(args)
 
         self.last_log_step = -self.args.learner_log_interval - 1
         self.last_hard_update_step = -self.args.hard_update_interval - 1
@@ -51,16 +49,6 @@ class BaseActorCriticLearner:
             self.actor_scheduler = StepLR(self.actor_optimiser, args.lr_decay_episodes, gamma=args.lr_decay_gamma)
         if args.lr_decay_critic:
             self.critic_shceduler = StepLR(self.critic_optimiser, args.lr_decay_episodes, gamma=args.lr_decay_gamma)
-
-
-    def _create_standarizers(self, args):
-        device = "cuda" if args.use_cuda else "cpu"
-        mixer = getattr(self, "mixer", None)
-        shape = self.args.n_agents if mixer is None else 1
-        if self.args.standardise_returns:
-            self.ret_ms = RunningMeanStd(shape=(shape,), device=device)
-        if self.args.standardise_rewards:
-            self.rew_ms = RunningMeanStd(shape=(shape,), device=device)
 
 
     def train(self, batch, t_env):

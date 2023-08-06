@@ -35,9 +35,6 @@ n_batches_to_sample: 1
 
 optimizer_epsilon: 0.00000001
 
-critic_obs_last_action: True
-critic_obs_agent_id: True
-
 use_cuda: True
 
 standardise_returns: False
@@ -47,6 +44,10 @@ env_args:
     obs_entity_mode: False
     state_entity_mode: False
 
-save_model_end: False
+save_model_end: True
 
 buffer_transitions: False
+
+start_steps: 0
+
+save_replay: False

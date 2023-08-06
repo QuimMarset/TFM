@@ -5,3 +5,5 @@ sacred/
 .idea/
 *.zip
 *.xml
+base_libraries/
+multiagent_mujoco_farama/

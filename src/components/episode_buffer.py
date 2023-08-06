@@ -175,10 +175,6 @@ class EpisodeBatch:
             ):
             items = (items, slice(None))
 
-        # Need the time indexing to be contiguous
-        if isinstance(items[1], list):
-            raise IndexError("Indexing across Time must be contiguous")
-
         for item in items:
             #TODO: stronger checks to ensure only supported options get through
             if isinstance(item, int):

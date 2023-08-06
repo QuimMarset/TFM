@@ -6,7 +6,7 @@ import json
 import pprint
 from datetime import datetime, date
 from tensorboard_logger import Logger as TBLogger
-from utils.results_utils import get_saved_steps, compute_mean_runs, get_metric_names
+from utils.results_utils import *
 
 
 
@@ -142,6 +142,6 @@ class GlobalTensorboardLogger:
     def log_global_stats(self, num_repetitions):
         metric_names = get_metric_names(self.experiment_path)
         for metric_name in metric_names:
-            steps = get_saved_steps(self.experiment_path, num_repetitions, metric_name)
-            mean_stats = compute_mean_runs(self.experiment_path, num_repetitions, metric_name)
+            steps = get_min_steps(self.experiment_path, num_repetitions, metric_name)
+            mean_stats = compute_mean_value_over_runs(self.experiment_path, num_repetitions, metric_name, len(steps))
             self.log_global_stats_metric(metric_name, mean_stats, steps)

@@ -3,12 +3,12 @@ env: "mujoco_multi"
 env_args:
     episode_limit: 1000
     scenario: "manyagent_swimmer"
-    agent_conf: "2x2"
+    agent_conf: "10x2"
     agent_obsk: 0
-    obs_add_global_pos: False
-    # render_mode: human
+    #global_categories: "qpos,qvel"
+    #render_mode: human
 
-repetitions: 5
+repetitions: 1
 
 test_interval: 20000
 test_nepisode: 10

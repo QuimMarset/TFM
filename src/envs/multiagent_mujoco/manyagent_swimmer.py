@@ -207,7 +207,3 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             self.init_qvel + self.np_random.uniform(low=-.1, high=.1, size=self.model.nv)
         )
         return self._get_obs()
-    
-
-    def render(self, **kwargs):
-        return super().render()

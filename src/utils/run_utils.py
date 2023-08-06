@@ -14,14 +14,14 @@ def get_agent_network_num_of_outputs(args, env_info):
     
     else:
 
-        methods = ['rnn_mean_log_std', 'rnn_actor', 'mlp_actor', 'transformer_actor', 'mlp_mean_log_std',
+        agent_types = ['rnn_mean_log_std', 'rnn_actor', 'mlp_actor', 'transformer_actor', 'mlp_mean_log_std',
                    'non_shared_actor_mlp', 'non_shared_actor_rnn', 'sides_actor_rnn', 'sides_actor_mlp',
-                   'shared_but_first_actor_mlp']
+                   'shared_but_first_actor_mlp', 'cnn_actor', 'mlp_actor_ao']
 
         if args.name == 'td3' or args.name == 'ddpg':
             return env_info['action_shape'] * args.n_agents
 
-        elif args.agent in methods:
+        elif args.agent in agent_types:
             return env_info['action_shape']
 
         else:

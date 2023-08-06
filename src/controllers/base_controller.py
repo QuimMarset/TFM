@@ -20,7 +20,7 @@ class BaseController:
     def forward(self, ep_batch, t):
         agent_inputs = self._build_inputs(ep_batch, t)
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
+        return agent_outs
 
 
     def init_hidden(self, batch_size):

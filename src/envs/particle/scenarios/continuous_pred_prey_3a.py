@@ -258,14 +258,12 @@ class Scenario(BaseScenario):
             else:
                 entity_pos.append(np.array([0., 0.]))
         # communication of all other agents
-        comm = []
         other_pos = []
         other_vel = []
         for other in world.agents:
             if other is agent: continue
             dist = np.sqrt(np.sum(np.square(other.state.p_pos - agent.state.p_pos)))
             if agent.view_radius >= 0 and dist <= agent.view_radius:
-                comm.append(other.state.c)
                 other_pos.append(other.state.p_pos - agent.state.p_pos)
                 if not other.adversary:
                     other_vel.append(other.state.p_vel)
@@ -293,3 +291,18 @@ class Scenario(BaseScenario):
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
         return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+    
+
+    def state(self, world):
+        landmark_pos = []
+        for entity in world.landmarks:
+            if not entity.boundary:
+                landmark_pos.append(entity.state.p_pos)
+
+        agent_pos = []
+        agent_vel = []
+        for agent in world.agents:
+            agent_pos.append(agent.state.p_pos)
+            agent_vel.append(agent.state.p_vel)
+
+        return np.concatenate(landmark_pos + agent_pos + agent_vel)

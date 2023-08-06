@@ -7,36 +7,42 @@ seed: 0
 add_agent_id: False
 critic_add_agent_id: False
 
-runner: "parallel"
+runner: "episode"
 buffer_transitions: True
-batch_size_run: 8
-n_batches_to_sample: 1000
-batch_size: 100
-buffer_size: 500000
-t_max: 4000000
+batch_size_run: 1
+n_batches_to_sample: -1
+batch_size: 256
+buffer_size: 20000
+t_max: 100000
 
-start_steps: 10000
+start_steps: 5000
 
-sigma_start: 0.5
+sigma_start: 0.3
 sigma_finish: 0.05
-sigma_anneal_time: 4000000
+sigma_anneal_time: 100000
 
-target_sigma_start: 0.2
+use_training_steps_to_compute_target_noise: True
+target_sigma_start: 0.3
 target_sigma_finish: 0.05
-target_sigma_anneal_time: 4000000
+target_sigma_anneal_time: 100000
+
+clip_exploration_actions: False
+decay_clipped_noise: True
+noise_clipping: 0.2
+target_noise_clipping: 0.2
+clip_noise_end: 0.05
 
 gamma: 0.99
 
-update_actor_targets_freq: 1
-target_noise_clipping: 0.5
+update_actor_targets_freq: 2
 
 critic_use_previous_transitions: False
 num_previous_transitions: 0
 
 update_actor_with_joint_qs: False
 
-lr: 0.001
-critic_lr: 0.001
+lr: 0.0001
+critic_lr: 0.0001
 lr_decay_actor: False
 lr_decay_critic: False
 lr_decay_gamma: 0.9
@@ -54,11 +60,11 @@ agent: "mlp_actor"
 critic: "double_critic"
 mixer: "qmix"
 
-mixing_embed_dim: 32
+mixing_embed_dim: 64
 hypernet_layers: 2
-hypernet_embed: 32
+hypernet_embed: 128
 hyper_initialization_nonzeros: 0
-hidden_dim: 64
+hidden_dim: 32
 
 target_update_mode: "soft"
 target_update_tau: 0.005
@@ -67,9 +73,9 @@ hard_update_interval: 20000
 actions_regularization: False
 
 save_model: False
-save_model_interval: 100000
+save_model_interval: 2000000
 
 save_model_end: True
 
-#checkpoint_path: C:/Users/quim1/Desktop/src/results/manyagent_swimmer/facmac_td3/experiment_103/run_1/models
+#checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer_10/FACMAC_TD3/compare_5/experiment_240/run_3/models
 #evaluate: True

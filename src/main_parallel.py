@@ -2,8 +2,7 @@ import sys
 from copy import deepcopy
 from multiprocessing import Process
 from run import run
-from utils.plot_results import (plot_train_return_over_runs, plot_test_return_over_runs, 
-                                plot_test_episode_length_over_runs)
+from utils.plot_results import *
 from utils.main_utils import *
 from utils.logging_results import Logger, GlobalTensorboardLogger
 
@@ -29,8 +28,8 @@ def run_repetition(config, experiment_path, repetition_index):
 
 if __name__ == '__main__':
 
-    default_env_config_name = 'mujoco_multi'
-    default_alg_config_name = 'facmac'
+    default_env_config_name = 'pettingzoo_continuous'
+    default_alg_config_name = 'facmac_td3'
 
     params = deepcopy(sys.argv)
     params_dict = input_args_to_dict(params)
@@ -65,8 +64,8 @@ if __name__ == '__main__':
         process.join()
 
     if not config['evaluate']:
-        train_steps, train_mean_returns = plot_train_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
-        test_steps, test_mean_returns = plot_test_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
+        plot_train_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
+        plot_test_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
         plot_test_episode_length_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
 
         global_logger = GlobalTensorboardLogger(experiment_path)
