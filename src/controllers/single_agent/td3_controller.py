@@ -17,11 +17,13 @@ class TD3Controller(DDPGController):
         if args.decay_clipped_noise:
             self.target_action_noising = GaussianClampedDecayNoise(args.target_noise_clipping, args.clip_noise_end,
                                                                    args.target_sigma_start, args.target_sigma_finish, 
-                                                                   args.target_sigma_anneal_time, start_steps)
+                                                                   args.target_sigma_anneal_time + start_steps, 
+                                                                   args.decay_type, args.power)
         else:
             self.target_action_noising = GaussianClampedNoise(args.target_noise_clipping, 
                                                             args.target_sigma_start, args.target_sigma_finish, 
-                                                            args.target_sigma_anneal_time, start_steps)
+                                                            args.target_sigma_anneal_time + start_steps,
+                                                            args.decay_type, args.power)
     
 
     def select_target_actions(self, ep_batch, t_ep, t_env):

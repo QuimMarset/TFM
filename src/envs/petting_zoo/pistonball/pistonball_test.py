@@ -85,12 +85,12 @@ ball_elasticity=1.5, max_cycles=125)
 
 import math
 
-import gymnasium
+import gym
 import numpy as np
 import pygame
 import pymunk
 import pymunk.pygame_util
-from gymnasium.utils import EzPickle, seeding
+from gym.utils import EzPickle, seeding
 
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector, wrappers
@@ -173,9 +173,6 @@ class raw_env(AECEnv, EzPickle):
         self.ball_radius = 40
         self.screen_width = (2 * self.wall_width) + (self.piston_width * self.n_pistons)
         self.screen_height = 560
-        y_high = self.screen_height - self.wall_width - self.piston_body_height
-        y_low = self.wall_width
-        obs_height = y_high - y_low
 
         assert (
             self.piston_width == self.wall_width
@@ -188,48 +185,26 @@ class raw_env(AECEnv, EzPickle):
         self._agent_selector = agent_selector(self.agents)
 
         self.observation_spaces = dict(
-            zip(
-                self.agents,
-                [
-                    gymnasium.spaces.Box(
-                        low=0,
-                        high=max(self.screen_height, self.screen_width),
-                        shape=(5, ),
-                        dtype=np.float32,
-                    )
-                ]
-                * self.n_pistons,
+            zip(self.agents, 
+                [gym.spaces.Box(low=0, high=1, shape=(4,), dtype=np.float32)] * self.n_pistons,
             )
         )
+
         self.continuous = continuous
+        
         if self.continuous:
             self.action_spaces = dict(
                 zip(
                     self.agents,
-                    [gymnasium.spaces.Box(low=-1, high=1, shape=(1,))] * self.n_pistons,
+                    [gym.spaces.Box(low=-1, high=1, shape=(1,))] * self.n_pistons,
                 )
             )
         else:
             self.action_spaces = dict(
-                zip(self.agents, [gymnasium.spaces.Discrete(2)] * self.n_pistons)
+                zip(self.agents, [gym.spaces.Discrete(2)] * self.n_pistons)
             )
-
-        if state_entity_mode:
-            self.state = self.state_entity_mode
-            self.state_space = gymnasium.spaces.Box(
-                low=0,
-                high=1,
-                shape=(3*self.n_pistons,),
-                dtype=np.float32,
-            )
-        else:
-            self.state = self.state_default
-            self.state_space = gymnasium.spaces.Box(
-                low=0,
-                high=max(self.screen_width, self.screen_height),
-                shape=(2*self.n_pistons + 2,),
-                dtype=np.float32,
-            )
+        
+        self.state_space = gym.spaces.Box(low=0, high=1, shape=(self.n_pistons,), dtype=np.float32)
 
         self._set_entity_attributes()
 
@@ -241,9 +216,9 @@ class raw_env(AECEnv, EzPickle):
         self.screen = pygame.Surface((self.screen_width, self.screen_height))
         self.max_cycles = max_cycles
 
-        self.piston_sprite = get_image("piston.png")
-        self.piston_body_sprite = get_image("piston_body.png")
-        self.background = get_image("background.png")
+        self.piston_sprite = get_image("piston.bmp")
+        self.piston_body_sprite = get_image("piston_body.bmp")
+        self.background = get_image("background.bmp")
         self.random_drop = random_drop
         self.random_rotate = random_rotate
 
@@ -301,32 +276,51 @@ class raw_env(AECEnv, EzPickle):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
 
-    def is_ball_in_sight(self, index):
-        ball_center = self.ball.position[0]
-        left_edge_piston  = self.wall_width + self.piston_width * index
-        right_edge_piston = left_edge_piston + 40
-        return abs(ball_center - left_edge_piston) <= self.ball_radius or abs(ball_center - right_edge_piston) <= self.ball_radius
 
-    def compute_ball_position_wrt_piston(self, index):
-        # ensure to update the ball_flags at the first
-        if index == 0:
-            self.ball_flags = [self.is_ball_in_sight(i) for i in range(self.n_pistons)]
-        ball_flags = np.zeros(3)
-        # Check if the ball is on top of the current piston
-        ball_flags[0] = self.ball_flags[index]
-        # Check if the ball is on top of the left piston
-        ball_flags[1] = index > 0 and self.ball_flags[index-1]
-        # Check if the ball is on top of the right piston
-        ball_flags[2] = index < len(self.pistonList) - 1 and self.ball_flags[index+1]
+    def is_ball_over_piston(self, agent_index):
+        # This method checks if the ball is inside the piston's width
+        ball_center = self.ball.position[0]
+        left_edge_piston  = self.wall_width + self.piston_width * agent_index
+        right_edge_piston = left_edge_piston + self.piston_width
+        return abs(ball_center - left_edge_piston) <= self.ball_radius or abs(ball_center - right_edge_piston) <= self.ball_radius
+    
+
+    def is_visible_ball_above_piston(self, agent_index):
+        # This method checks if the ball bottom y coordinate is above the piston or not
+        # This method only works if the ball is visible from the piston or its neighbours
+        # Of course, if the ball is visible from the current piston, it will always be above
+        y = self.pistonList[agent_index].position[1]
+        ball_bottom_y = self.ball.position[1] + self.ball_radius
+        # y coordinate grows from top to bottom
+        return ball_bottom_y < y
+
+
+    def is_ball_visible_from_piston(self, agent_index):
+        # This function reproduces the original observation of the neighbour pistons
+        # It returns 3 flags indicating if the ball is above the current piston or its 
+        # immediate neighbours
+
+        if agent_index == 0:
+            self.ball_flags = [self.is_ball_over_piston(i) for i in range(self.n_pistons)]
+
+        ball_flags = []
+        # current
+        ball_flags.append(self.ball_flags[agent_index])
+        # left
+        ball_flags.append(agent_index > 0 and self.ball_flags[agent_index - 1])
+        # right
+        ball_flags.append(agent_index < len(self.pistonList) - 1 and self.ball_flags[agent_index + 1])
         return ball_flags
+
 
     def observe(self, agent):
         index = self.agent_name_mapping[agent]
-        position = self.pistonList[index].position
-        position_x = (position[0] - self.wall_width) / (self.screen_width - 2*self.wall_width)
-        position_y = (self.screen_height - position[1] - self.wall_width) / (self.piston_height + 3*self.ball_radius)
-        ball_flags = self.compute_ball_position_wrt_piston(index)
-        return np.array([position_x, position_y, *ball_flags], dtype=np.float32)
+        ball_flags = self.is_ball_visible_from_piston(index)
+        if sum(ball_flags) > 0:
+            ball_flags.append(self.is_visible_ball_above_piston(index))
+        else:
+            ball_flags.append(0)
+        return np.array(ball_flags, dtype=np.float32)
 
 
     def get_current_frame(self):
@@ -338,32 +332,25 @@ class raw_env(AECEnv, EzPickle):
         return copy_frame
 
 
-    def state_default(self):
-        positions = []
+    def state(self):
+        flags = []
         for agent in self.agent_name_mapping:
-            piston_position = self.observe(agent)[:2]
-            positions.extend(piston_position)
-        ball_position_x = (self.ball.position[0] - self.wall_width) / (self.screen_width - 2*self.wall_width)
-        ball_position_y = (self.screen_height - self.ball.position[1] - self.wall_width) / (self.piston_height + 3*self.ball_radius)
-        positions.extend([ball_position_x, ball_position_y])
-        return np.array(positions, dtype=np.float32)
-    
-
-    def state_entity_mode(self):
-        state_matrix = np.array([self.compute_ball_position_wrt_piston(i) for i in range(self.n_pistons)], dtype=np.float32)
-        return state_matrix.flatten()
+            index = self.agent_name_mapping[agent]
+            is_above_current_piston = self.is_ball_over_piston(index)
+            flags.append(is_above_current_piston)
+        return np.array(flags, dtype=np.float32)
     
 
     def _set_entity_attributes(self):
         self.n_entities = 1
         # Each agent observe itself as entity
         self.n_entities_obs = 1
-        # Features of entity in obs are position and flags
-        self.obs_entity_feats = 5
+        # Features of entity in obs are flags
+        self.obs_entity_feats = 4
         # The state observe all the agent entities
         self.n_entities_state = self.num_agents
         # Features of entity in state are flags
-        self.state_entity_feats = 3
+        self.state_entity_feats = 1
 
 
     def enable_render(self):
@@ -656,7 +643,7 @@ class raw_env(AECEnv, EzPickle):
 
     def render(self):
         if self.render_mode is None:
-            gymnasium.logger.WARN(
+            gym.logger.WARN(
                 "You are calling render method without specifying any render mode."
             )
             return
@@ -678,21 +665,17 @@ class raw_env(AECEnv, EzPickle):
         )
 
     def step(self, action):
-        if action and self.continuous:
-            action = action[0]
-
         if not self.continuous and action == 1:
-            # We assume we only model actions 0 and 2
+            # We only model actions 0 and 2 (we remove noop)
             action = 2
 
-        if (
-            self.terminations[self.agent_selection]
-            or self.truncations[self.agent_selection]
-        ):
+        if (self.terminations[self.agent_selection] or self.truncations[self.agent_selection]):
             self._was_dead_step(action)
             return
 
-        action = np.asarray(action)
+        if not self.continuous:
+            action = np.asarray(action)
+        
         agent = self.agent_selection
         if self.continuous:
             self.move_piston(self.pistonList[self.agent_name_mapping[agent]], action)

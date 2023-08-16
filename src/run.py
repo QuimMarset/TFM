@@ -39,9 +39,9 @@ def run(config, logger, save_path):
     print("Exiting script")
 
 
-def evaluate_sequential(args, runner):
-    for _ in range(args.test_nepisode):
-        runner.run(test_mode=True)
+def evaluate_sequential(args, runner, save_path):
+    for episode_num in range(args.test_nepisode):
+        runner.run(test_mode=True, **{'experiment_path': save_path, 'episode_num' : episode_num})
     if getattr(args, 'save_replay', False):
         runner.save_replay()
     runner.close_env()
@@ -145,7 +145,7 @@ def run_sequential(args, logger, save_path):
 
         if args.evaluate or args.save_replay:
             runner.log_train_stats_t = runner.t_env
-            evaluate_sequential(args, runner)
+            evaluate_sequential(args, runner, save_path)
             logger.log_stat("episode", runner.t_env, runner.t_env)
             logger.print_recent_stats()
             logger.console_logger.info("Finished Evaluation")
@@ -210,7 +210,7 @@ def run_sequential(args, logger, save_path):
 
             last_test_T = runner.t_env
 
-            for _ in range(n_test_runs):
+            for i in range(n_test_runs):
                 runner.run(test_mode=True)
 
         if args.save_model and (runner.t_env - model_save_time >= args.save_model_interval or model_save_time == 0):

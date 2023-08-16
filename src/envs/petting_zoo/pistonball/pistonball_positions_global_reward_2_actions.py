@@ -321,7 +321,7 @@ class raw_env(AECEnv, EzPickle):
         return ball_flags
 
 
-    def observe(self, agent, return_x_coordinate=False):
+    def observe(self, agent, return_x_coordinate=True):
         index = self.agent_name_mapping[agent]
         position = self.pistonList[index].position
         position_x = (position[0] - self.wall_width) / (self.screen_width - 2*self.wall_width)

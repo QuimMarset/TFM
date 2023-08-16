@@ -1,12 +1,12 @@
-"""
-Taken from: https://github.com/semitable/fast-marl
-"""
-
 import torch
 from typing import Tuple
 
 
+
+# Taken from: https://github.com/semitable/fast-marl
+
 class RunningMeanStd(object):
+    
     def __init__(self, epsilon: float = 1e-4, shape: Tuple[int, ...] = (), device="cpu"):
         """
         https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
@@ -35,3 +35,4 @@ class RunningMeanStd(object):
             self.mean += delta * (batch_count / tot_count)
             self.var = m_2 / tot_count
             self.count = tot_count
+            

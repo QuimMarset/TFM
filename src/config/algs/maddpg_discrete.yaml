@@ -4,39 +4,46 @@ name: "maddpg_discrete"
 
 seed: 0
 
-add_agent_id: True
+add_agent_id: False
 add_last_action: True
-obs_individual_obs: False
-critic_add_agent_id: True
-critic_obs_individual_obs: False
+critic_add_agent_id: False
 
 runner: "parallel"
 batch_size_run: 1
-batch_size: 5
-buffer_size: 4000
-t_max: 1000000
+batch_size: 20
+buffer_size: 1000
+t_max: 100000
 
-gamma: 0.99
+action_selector: "epsilon_greedy"
+epsilon_start: 1.0
+epsilon_finish: 0.05
+epsilon_anneal_time: 70000
+evaluation_epsilon: 0
 
-lr: 0.001
-critic_lr: 0.001
+lr: 0.0005
+critic_lr: 0.0005
 lr_decay_actor: False
 lr_decay_critic: False
 lr_decay_gamma: 0.9
 lr_decay_episodes: 20
 
-grad_norm_clip_actor: 50
-grad_norm_clip_critic: 50
+grad_norm_clip_actor: 0.5
+grad_norm_clip_critic: 0.5
 
-optimizer_epsilon: 0.01
+use_td_lambda: True
+td_lambda: 0.6
+
+gamma: 0.99
+
+optimizer_epsilon: 0.0001
 
 learner: "maddpg_discrete_learner"
 mac: "maddpg_discrete_mac"
 critic_controller: "maddpg_discrete_controller"
 agent: "rnn"
-critic: "mlp"
+critic: "centralized_mlp"
 
-hidden_dim: 64
+hidden_dim: 128
 
 target_update_mode: "soft"
 target_update_tau: 0.005
@@ -47,6 +54,5 @@ save_model_interval: 50000
 
 save_model_end: True
 
-#load_step: 561000
-#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/facmac_pettingzoo/196/models" 
-#evaluate: True # Evaluate model for test_nepisode episodes and quit (no training)
+#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball/maddpg_discrete/experiment_23/run_1/models" 
+#evaluate: True

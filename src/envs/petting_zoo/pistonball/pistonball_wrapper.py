@@ -1,4 +1,5 @@
 from envs.petting_zoo.pistonball.pistonball_positions_global_reward_2_actions import parallel_env
+from envs.petting_zoo.pistonball.pistonball_test import parallel_env as parallel_env_2
 from envs.multiagentenv import MultiAgentEnv
 
 
@@ -12,9 +13,15 @@ class PistonballWrapper(MultiAgentEnv):
         render_mode = kwargs.get('render_mode', None) 
         state_entity_mode = kwargs.get('state_entity_mode', False)
 
-        self.env = parallel_env(n_pistons=num_pistons, continuous=continuous, 
-                                time_penalty=time_penalty, max_cycles=episode_limit,
-                                render_mode=render_mode, state_entity_mode=state_entity_mode)
+        if kwargs.get('use_flag_version', False):
+            self.env = parallel_env_2(n_pistons=num_pistons, continuous=continuous, 
+                    time_penalty=time_penalty, max_cycles=episode_limit,
+                    render_mode=render_mode, state_entity_mode=state_entity_mode)
+        
+        else:
+            self.env = parallel_env(n_pistons=num_pistons, continuous=continuous, 
+                    time_penalty=time_penalty, max_cycles=episode_limit,
+                    render_mode=render_mode, state_entity_mode=state_entity_mode)
         
         self.n_agents = num_pistons
         self.continuous = continuous
@@ -26,11 +33,11 @@ class PistonballWrapper(MultiAgentEnv):
 
 
     def _set_entity_attributes(self):
-        self.n_entities = self.env.n_entities
-        self.n_entities_obs = self.env.n_entities_obs
-        self.obs_entity_feats = self.env.obs_entity_feats
-        self.n_entities_state = self.env.n_entities_state
-        self.state_entity_feats = self.env.state_entity_feats
+        self.n_entities = self.env.unwrapped.n_entities
+        self.n_entities_obs = self.env.unwrapped.n_entities_obs
+        self.obs_entity_feats = self.env.unwrapped.obs_entity_feats
+        self.n_entities_state = self.env.unwrapped.n_entities_state
+        self.state_entity_feats = self.env.unwrapped.state_entity_feats
 
 
     def _transform_dict_to_list(self, value_dict):

@@ -199,7 +199,7 @@ class MujocoMulti(MultiAgentEnv):
         return self.get_obs()
 
     def render(self):
-        self.env.render()
+        return self.env.render()
 
     def close(self):
         self.env.close()

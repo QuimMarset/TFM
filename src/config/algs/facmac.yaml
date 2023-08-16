@@ -16,6 +16,8 @@ buffer_size: 1000
 t_max: 100000
 
 start_steps: 0
+decay_type: linear
+power: 1 # only applies to polynomial decay_type
 sigma_start: 0.5
 sigma_finish: 0.05
 sigma_anneal_time: 100000

@@ -3,6 +3,8 @@ from functools import partial
 from components.episode_buffer import EpisodeBatch
 import torch as th
 import numpy as np
+from PIL import Image
+import os
 
 
 
@@ -69,6 +71,9 @@ class EpisodeRunner:
         self.mac.init_hidden(batch_size=self.batch_size)
 
         while not terminated:
+
+            if getattr(self.args, 'evluate', False) and getattr(self.args, 'save_frames', False) and kwargs.get('episode_num', 0) == 0:
+                self._save_episode_frames(kwargs.get('experiment_path'), kwargs.get('episode_num'), self.t)
 
             actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
             actions = actions.detach()
@@ -164,3 +169,14 @@ class EpisodeRunner:
         
         actions = th.cat(actions, dim=-1)
         return actions
+    
+
+    def _save_episode_frames(self, experiment_path, episode_num, frame_num):
+        folder_path = os.path.join(experiment_path, 'frames', f'frames_{episode_num}')
+        os.makedirs(folder_path, exist_ok=True)
+        
+        frame = self.env.render()
+        if frame is not None:
+            image = Image.fromarray(frame)
+            frame_path = os.path.join(folder_path, f'frame_{frame_num}.png')
+            image.save(frame_path)

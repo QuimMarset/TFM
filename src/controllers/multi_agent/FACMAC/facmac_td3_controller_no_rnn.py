@@ -1,5 +1,5 @@
 from controllers.multi_agent.FACMAC.facmac_controller_no_rnn import FACMACAgentControllerNoRNN
-from components.action_noising import GaussianClampedNoise, GaussianClampedDecayNoise
+from components.action_noising import GaussianClampedNoise, GaussianClampedDecayNoise, OrnsteinUhlenbeckNoise
 import torch as th
 
 
@@ -14,24 +14,34 @@ class FACMACTD3AgentControllerNoRNN(FACMACAgentControllerNoRNN):
         else:
             start_steps = args.start_steps
 
+        if args.use_ornstein:
+            self.action_noising = OrnsteinUhlenbeckNoise(args.ou_theta, args.ou_sigma, 
+                                                     args.ou_noise_scale, 
+                                                     args.sigma_anneal_time + args.start_steps, 
+                                                     args.decay_type, args.power)
+
+        target_anneal_time = args.target_sigma_anneal_time + start_steps
+
         if args.decay_clipped_noise:
             self.target_action_noising = GaussianClampedDecayNoise(args.target_noise_clipping, args.clip_noise_end,
                                                                    args.target_sigma_start, args.target_sigma_finish, 
-                                                                   args.target_sigma_anneal_time, start_steps)
+                                                                   target_anneal_time, args.decay_type, args.power)
         else:
             self.target_action_noising = GaussianClampedNoise(args.target_noise_clipping, 
-                                                            args.target_sigma_start, args.target_sigma_finish, 
-                                                            args.target_sigma_anneal_time, start_steps)
+                                                              args.target_sigma_start, args.target_sigma_finish, 
+                                                              target_anneal_time, args.decay_type, args.power)
             
         if args.clip_exploration_actions:
+            sigma_anneal_time = args.sigma_anneal_time + start_steps
             if args.decay_clipped_noise:
                 self.action_noising = GaussianClampedDecayNoise(args.noise_clipping, args.clip_noise_end,
                                                                    args.sigma_start, args.sigma_finish, 
-                                                                   args.sigma_anneal_time, args.start_steps)
+                                                                   sigma_anneal_time, args.decay_type, 
+                                                                   args.power)
             else:
                 self.action_noising = GaussianClampedNoise(args.noise_clipping, args.sigma_start, 
-                                                       args.sigma_finish, args.sigma_anneal_time, 
-                                                       args.start_steps)
+                                                           args.sigma_finish, sigma_anneal_time, 
+                                                           args.decay_type, args.power)
         
 
     def select_target_actions(self, ep_batch, t_ep, t_env):

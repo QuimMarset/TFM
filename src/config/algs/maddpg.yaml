@@ -5,19 +5,21 @@ name: "maddpg"
 seed: 0
 
 add_agent_id: False
+add_last_action: False
 critic_add_agent_id: False
-critic_obs_individual_obs: False
 
-runner: "episode"
+runner: "parallel"
 buffer_transitions: True
 batch_size_run: 1
 n_batches_to_sample: -1
-batch_size: 256
-buffer_size: 50000
+batch_size: 100
+buffer_size: 1000000
 t_max: 100000
 
-start_steps: 0
-sigma_start: 0.1
+start_steps: 5000
+decay_type: linear
+power: 1 # only applies to polynomial decay_type
+sigma_start: 0.2
 sigma_finish: 0.05
 sigma_anneal_time: 100000
 
@@ -30,15 +32,15 @@ critic_lr: 0.001
 lr_decay_actor: False
 lr_decay_critic: False
 lr_decay_gamma: 0.9
-lr_decay_episodes: 100000
+lr_decay_episodes: 100
 
-grad_norm_clip_actor: 50
-grad_norm_clip_critic: 50
+grad_norm_clip_actor: 0.5
+grad_norm_clip_critic: 0.5
 
-#optimizer_epsilon: 0.01
+optimizer_epsilon: 0.01
 
 learner: "maddpg_learner"
-mac: "facmac_no_rnn_mac"
+mac: "facmac_mac"
 critic_controller: "maddpg_controller"
 agent: "mlp_actor"
 critic: "centralized_mlp"
@@ -46,7 +48,7 @@ critic: "centralized_mlp"
 hidden_dim: 64
 
 target_update_mode: "soft"
-target_update_tau: 0.005
+target_update_tau: 0.001
 hard_update_interval: 200
 
 save_model: False

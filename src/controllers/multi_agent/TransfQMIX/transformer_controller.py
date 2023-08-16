@@ -9,10 +9,7 @@ class TransformerController(QController):
         if test_mode:
             # Ensure Batch Norm layers behave in test mode
             self.agent.eval()
-
-        q_vals = self.forward(ep_batch, t_ep)
-        chosen_actions = self.action_selector.select_action(q_vals[bs], t_env, test_mode=test_mode)
-        return chosen_actions.unsqueeze(-1)
+        return super().select_actions(ep_batch, t_ep, t_env, bs, test_mode)
 
 
     def forward(self, ep_batch, t, return_hs=False):

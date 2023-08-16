@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.insert(0, f'{os.path.abspath("./")}/envs/base_libraries')
+sys.path.insert(0, f'{os.path.abspath("./src")}/envs/base_libraries')
 
 
 from functools import partial

@@ -10,7 +10,8 @@ class FACMACAgentController(BaseController):
     def __init__(self, scheme, args):
         super().__init__(scheme, args)
         self.action_noising = GaussianNoise(args.sigma_start, args.sigma_finish, 
-                                            args.sigma_anneal_time, args.start_steps)
+                                            args.sigma_anneal_time + args.start_steps, 
+                                            args.decay_type, args.power)
         self.action_clamper = ActionClamper(args.action_spaces, args.device)
         self.action_sampler = ActionSampler(args.action_spaces)
 

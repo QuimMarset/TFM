@@ -81,6 +81,7 @@ class ParallelRunner:
         self.batch.update(pre_transition_data, ts=0)
 
         self.t = 0
+        self.executed_steps = 0
 
     def run(self, test_mode=False, **kwargs):
         self.reset()
@@ -149,7 +150,9 @@ class ParallelRunner:
                     episode_lengths[idx] += 1
                     
                     if not test_mode:
-                        self.t_env += 1
+                        self.executed_steps += 1
+                        if getattr(self.args, 'increase_step_counter', True):
+                            self.t_env += 1
 
                     if data["done"] or data['truncated']:
                         final_env_infos.append(data["info"])
@@ -174,6 +177,8 @@ class ParallelRunner:
             # Add the pre-transition data
             self.batch.update(pre_transition_data, bs=envs_not_terminated, ts=self.t)
 
+        if not test_mode and not getattr(self.args, 'increase_step_counter', True):
+            self.t_env += self.executed_steps
 
         # Get stats back for each env
         for parent_conn in self.parent_conns:

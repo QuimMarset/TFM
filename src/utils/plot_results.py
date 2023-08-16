@@ -8,7 +8,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 def get_manyagent_swimmer_return_y_ticks(algorithm_name, agent_conf):
     if agent_conf == '2x2':
-        if algorithm_name == 'td3':
+        if algorithm_name in ['td3', 'ddpg']:
             return range(-150, 501, 50)
         else:
             return range(-150, 301, 50)
@@ -41,14 +41,14 @@ def get_episode_length_plot_y_ticks(env_name):
 
 
 def stylize_algorithm_name(algorithm_name):
-    if algorithm_name == 'qmix':
-        return 'QMIX'
-    elif algorithm_name == 'facmac':
-        return 'FACMAC'
+    if algorithm_name in ['qmix', 'facmac', 'maddpg', 'td3', 'ddpg', 'dqn']:
+        return algorithm_name.upper()
     elif algorithm_name == 'facmac_td3':
         return 'FACMAC-TD3'
-    elif algorithm_name == 'td3':
-        return 'TD3'
+    elif algorithm_name == 'maddpg_discrete':
+        return 'MADDPG-Gumbel-Softmax'
+    elif algorithm_name == 'transf_qmix_discrete':
+        return 'Transf-QMIX'
     else:
         raise ValueError(f'Unknown algorithm name {algorithm_name}')
     

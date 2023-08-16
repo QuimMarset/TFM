@@ -18,6 +18,7 @@ def orthogonal_init_(m, gain=1):
 
 
 class TransformerMixer(nn.Module):
+
     def __init__(self, args, abs=True):
         super(TransformerMixer, self).__init__()
 
@@ -92,9 +93,10 @@ class TransformerMixer(nn.Module):
         w2 = self.pos_func(w2)
 
         # Forward
-        hidden = F.elu(th.matmul(qvals, w1) + b1) # (b, 1, emb)
-        y = th.matmul(hidden, w2) + b2 # (b, 1, 1)
-        
+        # (b, 1, emb_dim)
+        hidden = F.elu(th.matmul(qvals, w1) + b1)
+        # (b, 1, 1)
+        y = th.matmul(hidden, w2) + b2
         return y, embs[:, -3:, :]
 
 

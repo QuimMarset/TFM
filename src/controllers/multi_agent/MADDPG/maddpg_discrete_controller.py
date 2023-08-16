@@ -1,12 +1,13 @@
 import torch as th
 from torch.autograd import Variable
 import torch.nn.functional as F
-from controllers.base_controller import BaseController
+from torch.distributions import Categorical
+from components.epsilon_schedules import LinearDecaySchedule
 from controllers.multi_agent.QMIX.q_controller import QController
 
 
 
-def onehot_from_logits(logits, eps=0.0):
+def onehot_from_logits(logits):
     """
     Given batch of logits, return one-hot sample using epsilon greedy strategy
     (based on given epsilon)
@@ -49,35 +50,57 @@ def gumbel_softmax(logits, temperature=1.0, hard=False):
     return y
 
 
+
+
+
 class MADDPGDiscreteController(QController):
 
     def __init__(self, scheme, args):
-        BaseController.__init__(self, scheme, args)
+        super().__init__(scheme, args)
+        self.schedule = LinearDecaySchedule(args.epsilon_start, args.epsilon_finish, args.epsilon_anneal_time)
+        self.epsilon = self.schedule.eval(0)
+
+    
+    def select_actions_alt(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
+        logits = self.forward(ep_batch, t_ep)
+        chosen_actions = gumbel_softmax(logits, hard=True).argmax(dim=-1)
+        return chosen_actions.unsqueeze(-1)[bs]
 
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
+        self.epsilon = self.schedule.eval(t_env)
+
         logits = self.forward(ep_batch, t_ep)
-        actions = gumbel_softmax(logits, hard=True).argmax(dim=-1)
-        # (b, n_agents, 1)
-        return actions.unsqueeze(-1)[bs]
+        epsilon_action_num = th.ones_like(logits).sum(dim=-1, keepdim=True).float()
+
+        agent_outs = th.nn.functional.softmax(logits, dim=-1)
+        agent_outs = ((1 - self.epsilon) * agent_outs + th.ones_like(
+            agent_outs) * self.epsilon / epsilon_action_num)
+        
+        picked_actions = Categorical(agent_outs).sample()
+        picked_actions = th.nn.functional.one_hot(picked_actions, num_classes=self.args.n_discrete_actions).float()
+        actions = th.argmax(picked_actions, dim=-1).long().unsqueeze(-1)
+        return actions[bs]
     
 
     def select_target_actions(self, ep_batch, t_ep):
         logits = self.forward(ep_batch, t_ep)
         # (b, n_agents, n_discrete_actions)
-        actions = onehot_from_logits(logits)
-        return actions
+        one_hot_actions = onehot_from_logits(logits)
+        return one_hot_actions
     
 
-    def select_actions_with_logits(self, ep_batch, t_ep):
+    def select_train_actions(self, ep_batch, t_ep):
         logits = self.forward(ep_batch, t_ep)
         # (b, n_agents, n_discrete_actions)
-        actions = gumbel_softmax(logits, hard=True)
-        return actions, logits
+        one_hot_actions = gumbel_softmax(logits, hard=True)
+        return one_hot_actions
 
 
     def forward(self, ep_batch, t):
+        # (b, n_agents, -1)
         agent_inputs = self._build_inputs(ep_batch, t)
+        # (b, n_agents, n_discrete_actions), (b, n_agents, hidden_dim)
         logits, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
         return logits
     

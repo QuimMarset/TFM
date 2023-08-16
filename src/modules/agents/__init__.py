@@ -84,11 +84,11 @@ agent_factory = Factory()
 # Value-based methods
 
 agent_factory.register_builder("mlp", build_mlp)
-agent_factory.register_builder("sides_mlp", build_sides_mlp)
+agent_factory.register_builder("shared_but_sides_mlp", build_sides_mlp)
 agent_factory.register_builder("non_shared_mlp", build_non_shared_mlp)
 
 agent_factory.register_builder("rnn", build_rnn)
-agent_factory.register_builder("sides_rnn", build_sides_rnn)
+agent_factory.register_builder("shared_but_sides_rnn", build_sides_rnn)
 agent_factory.register_builder("non_shared_rnn", build_non_shared_rnn)
 
 agent_factory.register_builder("transformer", build_transformer)
@@ -96,14 +96,14 @@ agent_factory.register_builder("transformer", build_transformer)
 # Policy gradient-based methods
 
 agent_factory.register_builder("mlp_actor", build_actor_mlp)
-agent_factory.register_builder("sides_actor_mlp", build_sides_mlp)
+agent_factory.register_builder("shared_but_sides_actor_mlp", build_sides_mlp)
 agent_factory.register_builder("non_shared_actor_mlp", build_non_shared_actor_mlp)
 agent_factory.register_builder('shared_but_first_actor_mlp', build_shared_but_first_actor_mlp)
 
 agent_factory.register_builder('mlp_actor_ao', build_mlp_actor_ao)
 
 agent_factory.register_builder("rnn_actor", build_actor_rnn)
-agent_factory.register_builder("sides_actor_rnn", build_sides_actor_rnn)
+agent_factory.register_builder("shared_but_sides_actor_rnn", build_sides_actor_rnn)
 agent_factory.register_builder("non_shared_actor_rnn", build_non_shared_actor_rnn)
 
 agent_factory.register_builder("cnn_actor", build_cnn_actor)

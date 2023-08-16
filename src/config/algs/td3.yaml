@@ -12,8 +12,9 @@ batch_size: 256
 buffer_size: 1000000
 t_max: 1000000
 
-start_steps: 10000
-
+start_steps: 25000
+decay_type: polynomial
+power: 0.5 # only applies to polynomial decay_type
 sigma_start: 0.5
 sigma_finish: 0.05
 sigma_anneal_time: 1000000
@@ -31,15 +32,15 @@ gamma: 0.9999
 
 update_actor_targets_freq: 2
 
-lr: 0.0005
-critic_lr: 0.0005
+lr: 0.001
+critic_lr: 0.001
 lr_decay_actor: False
 lr_decay_critic: False
 lr_decay_gamma: 0.9
 lr_decay_episodes: 20
 
-grad_norm_clip_actor: 500
-grad_norm_clip_critic: 500
+grad_norm_clip_actor: 0.5
+grad_norm_clip_critic: 0.5
 
 #optimizer_epsilon: 0.01
 
@@ -60,5 +61,5 @@ save_model_interval: 200000
 
 save_model_end: True
 
-checkpoint_path: "C:/Users/quim1/Desktop/src/results/manyagent_swimmer/td3/experiment_93/run_1/models" 
-evaluate: True
+#checkpoint_path: "C:/Users/quim1/Desktop/src/results/Swimmer/td3/experiment_3/run_1/models" 
+#evaluate: True

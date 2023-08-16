@@ -44,7 +44,13 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         
         self.frame_skip = 4
 
-        mujoco_env.MujocoEnv.__init__(self, self.asset_path, self.frame_skip, observation_space, self.render_mode)
+        if self.render_mode == 'rgb_array':
+            camera_name = 'track'
+        else:
+            camera_name = None
+
+        mujoco_env.MujocoEnv.__init__(self, self.asset_path, self.frame_skip, observation_space, 
+                                      self.render_mode, camera_name=camera_name)
         utils.EzPickle.__init__(self)
 
         self._set_entity_attributes()        

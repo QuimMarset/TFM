@@ -23,130 +23,122 @@ class DiscreteTransformerLearner(BaseQLearner):
 
 
     def compute_agent_loss(self, batch, t_env):
-        rewards = batch["reward"][:, :-1]
+        rewards = batch["reward"]
         actions = batch["actions"][:, :-1]
-        terminated = batch["terminated"][:, :-1].float()
-        mask = batch["filled"][:, :-1].float()
-        mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
+        terminated = batch["terminated"].float()
+        mask = batch["filled"].float()
+        mask_elems = mask[:, :-1].sum().item()
         
         # Set network to train mode
         self.agent.agent.train()
 
-        qvals, hidden_states = self._compute_qvalues(batch)
-        # Pick the Q-Values for the actions taken by each agent
-        chosen_action_qvals = th.gather(qvals[:, :-1], dim=3, index=actions).squeeze(3)
+        qs, hidden_states = self._compute_qs(batch)
+        # (b, episode_length, n_agents)
+        chosen_action_qs = th.gather(qs[:, :-1], dim=3, index=actions).squeeze(3)
+        # (b, episode_length, 1)
+        joined_chosen_action_qs = self._compute_joined_chosen_qs(batch, chosen_action_qs, hidden_states)
 
-        target_qvals, target_hidden_states = self._compute_target_qvalues(batch)
+        target_qs, target_hidden_states = self._compute_target_qs(batch)
+        # (b, episode_length + 1, n_agents)
+        max_target_qs = self._compute_max_target_qs(qs, target_qs)
+        # (b, episode_length + 1, 1)
+        joined_max_target_qs = self._compute_joined_max_target_qs(batch, max_target_qs, target_hidden_states)
+        
+        # (b, episode_length, 1)
+        targets = build_td_lambda_targets(rewards, terminated, mask, joined_max_target_qs, 
+                                          self.args.n_agents, self.args.gamma, self.args.td_lambda)
 
-        target_max_qvals = self._compute_max_target_qvalues(qvals, target_qvals)
-        joined_target_max_qvals = self._compute_joined_target_max_qvalues(batch, target_max_qvals, 
-                                                                         target_hidden_states)
-            
-        if getattr(self.args, 'q_lambda', False):
-            qvals = th.gather(target_qvals, 3, batch["actions"]).squeeze(3)
-            qvals = self.target_mixer(qvals, batch["state"], batch["obs"])
+        td_error = (joined_chosen_action_qs - targets.detach())
+        masked_td_error = td_error * mask[:, :-1]
+        loss = (masked_td_error ** 2).sum() / mask_elems
 
-            targets = build_q_lambda_targets(rewards, terminated, mask, joined_target_max_qvals, 
-                                             qvals, self.args.gamma, self.args.td_lambda)
-        else:
-            targets = build_td_lambda_targets(rewards, terminated, mask, joined_target_max_qvals, 
-                                              self.args.n_agents, self.args.gamma, self.args.td_lambda)
-
-        joined_chosen_action_qvals = self._compute_joined_chosen_qvalues(batch, chosen_action_qvals, hidden_states)
-
-        td_error = (joined_chosen_action_qvals - targets.detach())
-        td_error = 0.5 * td_error.pow(2)
-        mask = mask.expand_as(td_error)
-        masked_td_error = td_error * mask
-
-        loss = masked_td_error.sum() / mask.sum()
-
-        mask_elems = mask.sum().item()
         metrics = {
             'loss' : loss.item(),
             'td_error_abs' : masked_td_error.abs().sum().item() / mask_elems,
-            'q_taken_mean' : (chosen_action_qvals * mask).sum().item() / (mask_elems * self.args.n_agents),
-            'target_mean' : (targets * mask).sum().item() / (mask_elems * self.args.n_agents)
+            'q_taken_mean' : (joined_chosen_action_qs * mask[:, :-1]).sum().item() / mask_elems,
+            'target_mean' : (targets * mask[:, :-1]).sum().item() / mask_elems
         }
         return loss, metrics            
 
 
-    def _compute_qvalues(self, batch):
+    def _compute_qs(self, batch):
         self.agent.init_hidden(batch.batch_size)
-        qvals = []
+        qs = []
         hidden_states = []
 
         for t in range(batch.max_seq_length):
-            # (batch_size, n_agents, n_actions)
-            qvals_t, hidden_states_t = self.agent.forward(batch, t=t, return_hs=True)
-            qvals.append(qvals_t)
+            qs_t, hidden_states_t = self.agent.forward(batch, t=t, return_hs=True)
+            qs.append(qs_t)
             hidden_states.append(hidden_states_t)
 
-        qvals = th.stack(qvals, dim=1)
-        hidden_states = th.stack(hidden_states, dim=1)
-        return qvals, hidden_states
+        # (b, episode_length + 1, n_agents, n_discrete_actions), (b, episode_length + 1, n_agents, emb_dim)
+        return th.stack(qs, dim=1), th.stack(hidden_states, dim=1)
     
 
-    def _compute_target_qvalues(self, batch):
+    def _compute_target_qs(self, batch):
         self.target_agent.init_hidden(batch.batch_size)
-        target_qvals = []
+        target_qs = []
         target_hidden_states = []
 
         for t in range(batch.max_seq_length):
-            target_qvals_t, target_hidden_states_t = self.target_agent.forward(batch, t=t, return_hs=True)
-            target_qvals.append(target_qvals_t)
+            target_qs_t, target_hidden_states_t = self.target_agent.forward(batch, t=t, return_hs=True)
+            target_qs.append(target_qs_t)
             target_hidden_states.append(target_hidden_states_t)
 
-        target_qvals = th.stack(target_qvals, dim=1)
-        target_hidden_states = th.stack(target_hidden_states, dim=1)
-        return target_qvals, target_hidden_states
+        # (b, episode_length + 1, n_agents, n_discrete_actions), (b, episode_length + 1, n_agents, emb_dim)
+        return th.stack(target_qs, dim=1), th.stack(target_hidden_states, dim=1)
     
 
-    def _compute_max_target_qvalues(self, qvals, target_qvals):
-        # Max over target Q-Values with Double q learning
+    def _compute_max_target_qs(self, qvals, target_qs):
+        # Max over target Q-Values with Double Q-learning
         qvals_detach = qvals.clone().detach()
-        cur_max_actions = qvals_detach.max(dim=3, keepdim=True)[1]
-         # (batch_size, max_seq_length, n_agents)
-        target_max_qvals = th.gather(target_qvals, 3, cur_max_actions).squeeze(3)
+        # (b, episode_length + 1, n_agents, 1)
+        max_actions = qvals_detach.max(dim=3, keepdim=True)[1]
+        # (b, episode_length + 1, n_agents)
+        target_max_qvals = th.gather(target_qs, dim=-1, index=max_actions).squeeze(3)
         return target_max_qvals
     
 
-    def _compute_joined_target_max_qvalues(self, batch, target_max_qvals, target_hidden_states):
+    def _compute_joined_max_target_qs(self, batch, target_max_qs, target_hidden_states):
+        # (b, 3, emb_dim)
         hyper_weights = self.target_mixer.init_hidden().expand(batch.batch_size, -1, -1)
         
-        joined_target_max_qvals = []
+        joined_target_max_qs = []
 
         for t in range(batch.max_seq_length):
-
+            # (b, 1, 1), (b, 1, emb_dim)
             target_mixer_out, hyper_weights = self.target_mixer(
-                target_max_qvals[:, t].view(-1, 1, self.args.n_agents), # (batch, 1, n_agents)
+                # (b, 1, n_agents)
+                target_max_qs[:, t].view(-1, 1, self.args.n_agents), 
                 target_hidden_states[:, t],
                 hyper_weights,
                 batch["state"][:, t],
                 batch["obs"][:, t]
             )
-            joined_target_max_qvals.append(target_mixer_out.squeeze(-1))
+            joined_target_max_qs.append(target_mixer_out.squeeze(-1))
         
-        joined_target_max_qvals = th.stack(joined_target_max_qvals, dim=1)
-        return joined_target_max_qvals
+        # (b, episode_length + 1, 1)
+        return th.stack(joined_target_max_qs, dim=1)
     
 
-    def _compute_joined_chosen_qvalues(self, batch, chosen_qvals, hidden_states):
+    def _compute_joined_chosen_qs(self, batch, chosen_qs, hidden_states):
+        # (b, 3, emb_dim)
         hyper_weights = self.mixer.init_hidden().expand(batch.batch_size, -1, -1)
 
-        joined_chosen_qvals = []
+        joined_chosen_qs = []
 
         for t in range(batch.max_seq_length - 1):
-
+            # (b, 1, 1), (b, 1, emb_dim)
             mixer_out, hyper_weights = self.mixer(
-                chosen_qvals[:, t].view(-1, 1, self.args.n_agents),
+                # (b, 1, n_agents)
+                chosen_qs[:, t].view(-1, 1, self.args.n_agents),
                 hidden_states[:, t,].detach(),
                 hyper_weights,
                 batch["state"][:, t],
                 batch["obs"][:, t]
             )
             
-            joined_chosen_qvals.append(mixer_out.squeeze(-1))
+            joined_chosen_qs.append(mixer_out.squeeze(-1))
         
-        joined_chosen_qvals = th.stack(joined_chosen_qvals, dim=1)
-        return joined_chosen_qvals
+        # (b, episode_length, 1)
+        return th.stack(joined_chosen_qs, dim=1)

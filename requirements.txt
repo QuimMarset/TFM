@@ -6,6 +6,9 @@ torchvision
 tensorboard
 tensorboard-logger
 pygame
+pymunk
+gymnasium
+pettingzoo
 PyYAML
 
 sudo apt-get install libglfw3

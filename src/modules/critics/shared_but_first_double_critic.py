@@ -41,6 +41,12 @@ class SharedButFirstDoubleCritic(nn.Module):
 
         # (b, n_agents, 1), (b, n_agents, 1), (2, b, n_agents, hidden_dim)
         return q_values_1, q_values_2, hidden_states
+    
+
+    def forward_first(self, inputs, hidden_state, actions):
+        q_values_1, _ = self.critics[0](inputs, hidden_state[0], actions)
+        return q_values_1, hidden_state
+
 
 
     def cuda(self, device="cuda:0"):

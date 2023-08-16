@@ -27,8 +27,8 @@ def run_repetition(config, experiment_path, repetition_index):
 
 if __name__ == '__main__':
 
-    default_env_config_name = 'pettingzoo_continuous'
-    default_alg_config_name = 'maddpg'
+    default_env_config_name = 'pettingzoo'
+    default_alg_config_name = 'maddpg_discrete'
 
     params = deepcopy(sys.argv)
     params_dict = input_args_to_dict(params)

@@ -9,6 +9,8 @@ class PettingZooWrapper(MultiAgentEnv):
         self.env = self._create_env(env_name, **kwargs)
         self.n_agents = self.env.n_agents
         self.episode_limit = self.env.episode_limit
+        if kwargs.get('state_entity_mode', False) or kwargs.get('obs_entity_mode', False):
+            self._set_entity_attributes()
 
 
     def _create_env(self, env_name, **kwargs):
@@ -16,6 +18,14 @@ class PettingZooWrapper(MultiAgentEnv):
             return PistonballWrapper(**kwargs)
         else:
             raise ValueError(f'Unknown PettingZoo environment {env_name}')
+        
+    
+    def _set_entity_attributes(self):
+        self.n_entities = self.env.n_entities
+        self.n_entities_obs = self.env.n_entities_obs
+        self.obs_entity_feats = self.env.obs_entity_feats
+        self.n_entities_state = self.env.n_entities_state
+        self.state_entity_feats = self.env.state_entity_feats
 
 
     def reset(self):

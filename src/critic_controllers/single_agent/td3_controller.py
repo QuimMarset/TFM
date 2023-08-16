@@ -19,7 +19,7 @@ class TD3Controller(DDPGController):
         # (b, 1, state_shape)
         input = self._build_inputs(ep_batch, t)
         # (b, 1, 1), (b, 1, hidden_dim)
-        critic_1_outs, _, self.hidden_states = self.critic(input, self.hidden_states, actions)
+        critic_1_outs, self.hidden_states = self.critic.forward_first(input, self.hidden_states, actions)
         return critic_1_outs
     
 

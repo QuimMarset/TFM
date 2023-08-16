@@ -98,23 +98,21 @@ class FACMACTD3LearnerNoRNN(BaseActorCriticLearner):
 
         actions = self.actor.forward(batch, 0)
 
-        ind_qs_1, ind_qs_2 = self.critic.forward(batch, 0, actions)
+        ind_qs_1 = self.critic.forward_first(batch, 0, actions)
 
         if self.args.update_actor_with_joint_qs:
-            joint_qs_1 = self.mixer_1(ind_qs_1, batch["state"][:, 0:1])
-            joint_qs_2 = self.mixer_2(ind_qs_2, batch["state"][:, 0:1])
-            min_qs = th.min(joint_qs_1, joint_qs_2)
+            qs_1 = self.mixer_1(ind_qs_1, batch["state"][:, 0:1])
         else:
-            min_qs = th.min(ind_qs_1, ind_qs_2)
+            qs_1 = ind_qs_1
 
-        mask = mask.expand_as(min_qs)
+        mask = mask.expand_as(qs_1)
         mask_elems = mask.sum().item()
 
         actions_regularization_weight = 1e-3
         if not self.args.actions_regularization:
             actions_regularization_weight = 0
 
-        loss_q_term = (min_qs * mask).sum() / mask_elems
+        loss_q_term = (qs_1 * mask).sum() / mask_elems
 
         loss = - loss_q_term + (actions**2).mean() * actions_regularization_weight
 

@@ -7,7 +7,7 @@ from modules.layers.transformer import Transformer
 class TransformerAgent(nn.Module):
 
     def __init__(self, args):
-        super(TransformerAgent, self).__init__()
+        super().__init__()
 
         self.args = args
         # get the number of entities for the agent if specified, otherwise use n_entities

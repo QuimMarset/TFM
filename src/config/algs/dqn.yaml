@@ -2,35 +2,38 @@
 
 name: 'dqn'
 
-seed: 1412
+seed: 0
 
-add_agent_id: True
-add_last_action: True
-obs_individual_obs: False
-
-action_selector: "epsilon_greedy_single"
+action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
 epsilon_anneal_time: 100000
 evaluation_epsilon: 0
 
-runner: "episode"
+runner: "parallel"
+buffer_transitions: True
+n_batches_to_sample: -1
 batch_size_run: 1
-batch_size: 20
-buffer_size: 1000
-t_max: 300000
+batch_size: 256
+buffer_size: 1000000
+t_max: 150000
 
-lr: 0.01
-lr_decay: True
+lr: 0.001
+lr_decay: False
 lr_decay_gamma: 0.5
 lr_decay_episodes: 500
 
 grad_norm_clip: 0.5
-optimizer_epsilon: 0.00000001
+
+gamma: 0.99
+
+double_q: True
+
+# optimizer_epsilon: 0.01
 
 learner: "dqn_learner"
 mac: "dqn_mac"
-agent: "rnn"
+agent: "mlp"
 
 hidden_dim: 256
 
@@ -41,7 +44,7 @@ target_update_tau: 0.005
 save_model: False
 save_model_interval: 5000
 
-double_q: True
+save_model_end: True
 
-standardise_returns: False
-standardise_rewards: False
+standardize_returns: True
+standardize_rewards: True

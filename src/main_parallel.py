@@ -8,9 +8,8 @@ from utils.logging_results import Logger, GlobalTensorboardLogger
 
 
 
-def set_repetition_seeds(config, repetition_index):
+def set_repetition_seeds(config, repetition_index, seed):
     if 'seed' not in config:
-        seed = get_random_seed()
         config['seed'] = seed
     else:
         config['seed'] += repetition_index * config['batch_size_run']
@@ -18,8 +17,8 @@ def set_repetition_seeds(config, repetition_index):
     set_random_seed(config['seed'])
 
 
-def run_repetition(config, experiment_path, repetition_index):
-    set_repetition_seeds(config, repetition_index)
+def run_repetition(config, experiment_path, repetition_index, seed):
+    set_repetition_seeds(config, repetition_index, seed)
     logger = Logger(experiment_path, repetition_index)
     logger.save_config(config)
     run(config, logger, experiment_path)
@@ -28,8 +27,8 @@ def run_repetition(config, experiment_path, repetition_index):
 
 if __name__ == '__main__':
 
-    default_env_config_name = 'pettingzoo_continuous'
-    default_alg_config_name = 'facmac_td3'
+    default_env_config_name = 'mujoco_multi'
+    default_alg_config_name = 'facmac'
 
     params = deepcopy(sys.argv)
     params_dict = input_args_to_dict(params)
@@ -56,7 +55,8 @@ if __name__ == '__main__':
     num_repetitions = config['repetitions']
     for index in range(1, num_repetitions + 1):
         run_path = create_new_experiment_run(experiment_path, index)
-        process = Process(target=run_repetition, args=(config.copy(), run_path, index - 1,))
+        seed = get_random_seed()
+        process = Process(target=run_repetition, args=(config.copy(), run_path, index - 1, seed))
         process.start()
         processes.append(process)
 
