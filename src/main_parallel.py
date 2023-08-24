@@ -12,7 +12,13 @@ def set_repetition_seeds(config, repetition_index, seed):
     if 'seed' not in config:
         config['seed'] = seed
     else:
-        config['seed'] += repetition_index * config['batch_size_run']
+        if isinstance(config['seed'], int):
+            config['seed'] += repetition_index * config['batch_size_run']
+        elif isinstance(config['seed'], list):
+            config['seed'] = config['seed'][repetition_index]
+        else:
+            raise ValueError(f'Only integer or list of seeds. Invalid seed {config["seed"]}')
+    
     config['env_args']['seed'] = config['seed']
     set_random_seed(config['seed'])
 

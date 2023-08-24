@@ -12,25 +12,26 @@ batch_size: 256
 buffer_size: 1000000
 t_max: 1000000
 
-start_steps: 25000
-decay_type: polynomial
+start_steps: 10000
+decay_type: linear
 power: 0.5 # only applies to polynomial decay_type
 sigma_start: 0.5
 sigma_finish: 0.05
 sigma_anneal_time: 1000000
 
+increase_step_counter: True
 use_training_steps_to_compute_target_noise: True
-target_sigma_start: 0.5
+
+use_min_to_update_actor: True
+
+target_sigma_start: 0.2
 target_sigma_finish: 0.05
 target_sigma_anneal_time: 1000000
-
-target_noise_clipping: 0.2
-decay_clipped_noise: False
-clip_noise_end: 0.05
+target_noise_clipping: 0.5
 
 gamma: 0.9999
 
-update_actor_targets_freq: 2
+update_actor_targets_freq: 1
 
 lr: 0.001
 critic_lr: 0.001

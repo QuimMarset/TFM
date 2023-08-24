@@ -7,7 +7,7 @@ seed: 0
 add_agent_id: False
 critic_add_agent_id: False
 
-runner: "parallel"
+runner: "parallel_one"
 buffer_transitions: True
 batch_size_run: 8
 n_batches_to_sample: 1000
@@ -15,37 +15,35 @@ batch_size: 100
 buffer_size: 500000
 t_max: 4000000
 
+increase_step_counter: False
+use_training_steps_to_compute_target_noise: True
+
 start_steps: 10000
-decay_type: polynomial
+decay_type: linear
 power: 0.5 # only applies to polynomial decay_type
 sigma_start: 0.5
 sigma_finish: 0.05
 sigma_anneal_time: 4000000
 
-use_ornstein: True
+use_ornstein: False
 ou_theta: 0.15
 ou_sigma: 0.2
 ou_noise_scale: 0.3
 
-use_training_steps_to_compute_target_noise: True
 target_sigma_start: 0.2
 target_sigma_finish: 0.05
 target_sigma_anneal_time: 500000
-
 target_noise_clipping: 0.2
-clip_exploration_actions: False
-decay_clipped_noise: False
-noise_clipping: 0.2
-clip_noise_end: 0.05
 
 gamma: 0.99
 
-update_actor_targets_freq: 2
+update_actor_targets_freq: 1
 
 critic_use_previous_transitions: False
 num_previous_transitions: 0
 
 update_actor_with_joint_qs: False
+use_min_to_update_actor: True
 
 lr: 0.001
 critic_lr: 0.001

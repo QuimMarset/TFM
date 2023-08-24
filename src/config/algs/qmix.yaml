@@ -7,7 +7,7 @@ seed: 0
 add_agent_id: False
 add_last_action: True
 
-runner: "parallel"
+runner: "episode"
 batch_size_run: 1
 batch_size: 20
 buffer_size: 1000
@@ -18,7 +18,7 @@ increase_step_counter: False
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
-epsilon_anneal_time: 40000
+epsilon_anneal_time: 30000
 evaluation_epsilon: 0
 
 lr: 0.001
@@ -28,12 +28,12 @@ lr_decay_episodes: 50
 
 grad_norm_clip: 0.5
 
-#optimizer_epsilon: 0.01
+#optimizer_epsilon: 0.0001
 
 mac: "basic_mac"
-agent: "shared_but_sides_rnn"
+agent: "rnn"
 learner: "q_learner"
-mixer: "qmix"
+mixer: "vdn"
 
 double_q: True
 
@@ -51,5 +51,5 @@ save_model_interval: 5000
 
 save_model_end: True
 
-#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball/qmix/experiment_16/run_1/models" 
+#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball/qmix/experiment_43/run_2/models" 
 #evaluate: True # Evaluate model for test_nepisode episodes and quit (no training)

@@ -44,46 +44,10 @@ class GaussianNoise:
         self.schedule = create_decay_schedule(schedule_type, sigma_start, sigma_finish, sigma_anneal_time, power)
 
 
-    def add_noise(self, agent_inputs, t_env):
+    def generate_noise(self, agent_inputs, t_env):
         self.sigma = self.schedule.eval(t_env)
         noise = th.randn_like(agent_inputs) * self.sigma
-        actions = agent_inputs + noise
-        return actions
-
-
-
-class GaussianClampedNoise(GaussianNoise):
-
-
-    def __init__(self, noise_clipping, sigma_start, sigma_finish, sigma_anneal_time, schedule_type, power=1):
-        super().__init__(sigma_start, sigma_finish, sigma_anneal_time, schedule_type, power)
-        self.noise_clipping = noise_clipping
-
-
-    def add_noise(self, agent_inputs, t_env):
-        self.sigma = self.schedule.eval(t_env)
-        noise = th.randn_like(agent_inputs) * self.sigma
-        clamped_noise = th.clamp(noise, -self.noise_clipping, self.noise_clipping)
-        actions = agent_inputs + clamped_noise
-        return actions
-    
-
-
-class GaussianClampedDecayNoise(GaussianNoise):
-
-
-    def __init__(self, clipping_start, clipping_finish, sigma_start, sigma_finish, anneal_time, schedule_type, power=1):
-        super().__init__(sigma_start, sigma_finish, anneal_time, schedule_type)
-        self.noise_clipping_schedule = create_decay_schedule(schedule_type, clipping_start, clipping_finish, anneal_time, power)
-
-
-    def add_noise(self, agent_inputs, t_env):
-        self.sigma = self.schedule.eval(t_env)
-        self.clipped_noise = self.noise_clipping_schedule.eval(t_env)
-        noise = th.randn_like(agent_inputs) * self.sigma
-        clamped_noise = th.clamp(noise, -self.clipped_noise, self.clipped_noise)
-        actions = agent_inputs + clamped_noise
-        return actions
+        return noise
     
 
     
@@ -95,7 +59,7 @@ class OrnsteinUhlenbeckNoise:
         self.schedule = create_decay_schedule(schedule_type, noise_scale_start, 0, noise_scale_anneal_time, power)
 
 
-    def add_noise(self, agent_inputs, t_env):
+    def generate_noise(self, agent_inputs, t_env):
         temp = getattr(self, 'noise_state', agent_inputs.clone().zero_())
 
         derivative = self.theta * - temp + self.sigma * temp.clone().normal_()
@@ -103,5 +67,27 @@ class OrnsteinUhlenbeckNoise:
         
         noise_scale = self.schedule.eval(t_env)
         noise = self.noise_state * noise_scale
-        return agent_inputs + noise
+        return noise
+
+
+
+class NoiseClamper:
+
+    def __init__(self, noise_clipping):
+        self.noise_clipping = noise_clipping
+
+
+    def clamp_noise(self, noise):
+        return th.clamp(noise, -self.noise_clipping, self.noise_clipping)
     
+
+
+class NoiseClamperWithDecay:
+
+    def __init__(self, clipping_start, clipping_finish, anneal_time, schedule_type, power=1):
+        self.clipping_schedule = create_decay_schedule(schedule_type, clipping_start, clipping_finish, anneal_time, power)
+
+
+    def clamp_noise(self, noise, t_env):
+        self.clipped_noise = self.noise_clipping_schedule.eval(t_env)
+        return th.clamp(noise, -self.clipped_noise, self.clipped_noise)  

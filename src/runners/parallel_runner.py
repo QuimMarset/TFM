@@ -4,6 +4,7 @@ from components.episode_buffer import EpisodeBatch
 from multiprocessing import Pipe, Process
 import numpy as np
 import torch as th
+import time
 
 
 
@@ -94,6 +95,8 @@ class ParallelRunner:
         envs_not_terminated = [b_idx for b_idx, termed in enumerate(terminated) if not termed]
         final_env_infos = []
 
+        mean_step_time = []
+
         while True:
 
             # Pass the entire batch of experiences up till now to the agents
@@ -109,6 +112,8 @@ class ParallelRunner:
                 "actions": actions.unsqueeze(1)
             }
             self.batch.update(actions_chosen, bs=envs_not_terminated, ts=self.t, mark_filled=False)
+
+            start_time = time.time()
 
             # Send actions to each env
             action_idx = 0
@@ -168,6 +173,10 @@ class ParallelRunner:
                     pre_transition_data["state"].append(data["state"])
                     pre_transition_data["obs"].append(data["obs"])
 
+            end_time = time.time()
+
+            mean_step_time.append(end_time - start_time)
+
             # Add post_transiton data into the batch
             self.batch.update(post_transition_data, bs=envs_not_terminated, ts=self.t, mark_filled=False)
 
@@ -177,12 +186,14 @@ class ParallelRunner:
             # Add the pre-transition data
             self.batch.update(pre_transition_data, bs=envs_not_terminated, ts=self.t)
 
+        print(f'Average seconds to complete a step {np.mean(mean_step_time)}')
+
         if not test_mode and not getattr(self.args, 'increase_step_counter', True):
             self.t_env += self.executed_steps
 
         # Get stats back for each env
         for parent_conn in self.parent_conns:
-            parent_conn.send(("get_stats",None))
+            parent_conn.send(("get_stats", None))
 
         env_stats = []
         for parent_conn in self.parent_conns:

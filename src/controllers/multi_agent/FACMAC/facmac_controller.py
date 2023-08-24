@@ -60,5 +60,5 @@ class FACMACAgentController(BaseController):
         if self.args.start_steps > 0 and t_env <= self.args.start_steps:
             return self.action_sampler.sample_actions(actions.size(0), actions.device)
         else:
-            actions = self.action_noising.add_noise(actions, t_env)
-            return self.action_clamper.clamp_actions(actions)
+            noise = self.action_noising.generate_noise(actions, t_env)
+            return self.action_clamper.clamp_actions(actions + noise)

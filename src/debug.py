@@ -1,49 +1,40 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
-from components.epsilon_schedules import PolynomialDecaySchedule, LinearDecaySchedule, ExponentialDecaySchedule
+from envs.multiagent_mujoco.mujoco_multi import MujocoMulti
+import numpy as np
+import time
+
+from collections import UserDict
+
+import gym
+import gym.envs.registration
+
+# Do this before importing pybullet_envs (adds an extra property env_specs as a property to the registry, so it looks like the <0.26 envspec version)
+registry = UserDict(gym.envs.registration.registry)
+registry.env_specs = gym.envs.registration.registry
+gym.envs.registration.registry = registry
 
 
+from pybullet_envs.gym_locomotion_envs import AntBulletEnv
 
 
 if __name__ == '__main__':
 
-    start = 0.2
-    finish = 0.05
-    steps = 4000000
-    
-    schedules = [
-        PolynomialDecaySchedule(start, finish, steps, 0.3),
-        PolynomialDecaySchedule(start, finish, steps, 0.5),
-        PolynomialDecaySchedule(start, finish, steps, 0.7),
-        PolynomialDecaySchedule(start, finish, steps, 1.5),
-        PolynomialDecaySchedule(start, finish, steps, 2),
-        LinearDecaySchedule(start, finish, steps),
-        ExponentialDecaySchedule(start, finish, steps),
-    ]
 
-    values = [[] for _ in range(len(schedules))]
+    env = AntBulletEnv(render=True)
+    env.reset()
 
-    for step in range(0, steps):
-        for i, schedule in enumerate(schedules):
-            value = schedule.eval(step)
-            values[i].append(value)
+    for i in range(5000):
 
+        action = env.action_space.sample()
+        action[4:6] = 0
 
-    sns.set(style="whitegrid")
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(values[0], label='Polynomial 0.3')
-    plt.plot(values[1], label='Polynomial 0.5')
-    plt.plot(values[2], label='Polynomial 0.7')
-    plt.plot(values[3], label='Polynomial 1.5')
-    plt.plot(values[4], label='Polynomial 2')
-    plt.plot(values[5], label='Linear')
-    plt.plot(values[6], label='Exponential')
+        env.render()
 
-    plt.title('Sigma decay schedule comparison')
-    plt.xlabel('Step')
-    plt.ylabel('Sigma')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('./schedules.png', dpi=300)
-    plt.close()
+        state, reward, done, _ = env.step(action)
+
+        if done:
+            print(f'Reset at {i}')
+            env.reset()
+
+        time.sleep(0.01)
+
+    print()

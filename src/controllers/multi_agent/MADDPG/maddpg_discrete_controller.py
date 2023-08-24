@@ -51,8 +51,6 @@ def gumbel_softmax(logits, temperature=1.0, hard=False):
 
 
 
-
-
 class MADDPGDiscreteController(QController):
 
     def __init__(self, scheme, args):
@@ -67,19 +65,26 @@ class MADDPGDiscreteController(QController):
         return chosen_actions.unsqueeze(-1)[bs]
 
 
-    def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
-        self.epsilon = self.schedule.eval(t_env)
-
+    def select_actions_alt_2(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         logits = self.forward(ep_batch, t_ep)
-        epsilon_action_num = th.ones_like(logits).sum(dim=-1, keepdim=True).float()
 
-        agent_outs = th.nn.functional.softmax(logits, dim=-1)
-        agent_outs = ((1 - self.epsilon) * agent_outs + th.ones_like(
-            agent_outs) * self.epsilon / epsilon_action_num)
+        if test_mode:
+            # (b, n_agents, n_discrete_actions)
+            one_hot_actions = onehot_from_logits(logits)
+            # (b, n_agents, 1)
+            actions = th.argmax(one_hot_actions, dim=-1, keepdim=True).long()
+
+        else:
+            self.epsilon = self.schedule.eval(t_env)
+
+            epsilon_action_num = th.ones_like(logits).sum(dim=-1, keepdim=True).float()
+
+            agent_outs = th.nn.functional.softmax(logits, dim=-1)
+            agent_outs = ((1 - self.epsilon) * agent_outs + th.ones_like(
+                agent_outs) * self.epsilon / epsilon_action_num)
+            
+            actions = Categorical(agent_outs).sample().long().unsqueeze(-1)
         
-        picked_actions = Categorical(agent_outs).sample()
-        picked_actions = th.nn.functional.one_hot(picked_actions, num_classes=self.args.n_discrete_actions).float()
-        actions = th.argmax(picked_actions, dim=-1).long().unsqueeze(-1)
         return actions[bs]
     
 

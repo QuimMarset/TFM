@@ -24,8 +24,8 @@ class DDPGController(BaseController):
             if t_env <= self.args.start_steps:
                 actions = self.action_sampler.sample_actions(actions.size(0), actions.device)
             else:
-                actions = self.action_noising.add_noise(actions, t_env)
-                actions = self.action_clamper.clamp_actions(actions)      
+                noise = self.action_noising.generate_noise(actions, t_env)
+                actions = self.action_clamper.clamp_actions(actions + noise)      
         return actions[bs]
     
 

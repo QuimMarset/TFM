@@ -35,7 +35,8 @@ class MujocoMulti(MultiAgentEnv):
         self.scenario = kwargs["scenario"]  # e.g. Ant-v4
         self.agent_conf = kwargs["agent_conf"]  # e.g. '2x3'
 
-        self.seed_ = kwargs.get('seed', None)
+        self.seed = kwargs.get('seed', None)
+        self.set_rng = True
 
         self.agent_partitions, self.mujoco_edges, self.mujoco_globals = get_parts_and_edges(self.scenario,
                                                                                              self.agent_conf)
@@ -50,7 +51,8 @@ class MujocoMulti(MultiAgentEnv):
             self.k_categories_label = kwargs.get("k_categories")
             if self.k_categories_label is None:
                 if self.scenario in ["Ant-v4", "manyagent_ant"]:
-                    self.k_categories_label = "qpos,qvel,cfrc_ext|qpos"
+                    # Gymansium.MuJoCo.Ant-v4 has disabled cfrc_ext by default
+                    self.k_categories_label = "qpos,qvel|qpos"
                 elif self.scenario in ["Humanoid-v4", "HumanoidStandup-v4"]:
                     self.k_categories_label = "qpos,qvel,cfrc_ext,cvel,cinert,qfrc_actuator|qpos"
                 elif self.scenario in ["Reacher-v4"]:
@@ -81,13 +83,14 @@ class MujocoMulti(MultiAgentEnv):
                 env_class = ManyAgentAntEnv
             elif self.scenario == 'manyagent_swimmer':
                 env_class = ManyAgentSwimmerEnv
-            else:
+            elif self.scenario == 'Swimmer-v4':
                 env_class = SwimmerEnv
 
             self.wrapped_env = NormalizedActions(TimeLimit(env_class(**kwargs), max_episode_steps=self.episode_limit))
 
         else:
-            custom_args = kwargs.get('custom_args', {})
+            custom_args = kwargs.get('custom_args', {'render_mode': kwargs.get('render_mode', None)})
+            # Gym's make already applies TimeLimit in certain environments like Ant-v4
             self.wrapped_env = NormalizedActions(gym.make(self.scenario, **custom_args))
 
         self.timelimit_env = self.wrapped_env.env
@@ -104,7 +107,7 @@ class MujocoMulti(MultiAgentEnv):
         self.action_space = tuple([
             Box(self.env.action_space.low[sum(acdims[:a]):sum(acdims[:a+1])],
                 self.env.action_space.high[sum(acdims[:a]):sum(acdims[:a+1])],
-                seed=self.seed_) 
+                seed=self.seed) 
             for a in range(self.n_agents)])
         
             
@@ -195,7 +198,16 @@ class MujocoMulti(MultiAgentEnv):
     def reset(self):
         """ Returns initial observations and states"""
         self.steps = 0
-        self.timelimit_env.reset(seed=self.seed_)
+
+        # We should set the RNG once, when calling reset() by passing the seed. Then, the seed should be None
+        # Otherwise, we will always reset the RNG, generating identical episodes
+        #if self.set_rng:
+        #    seed = self.seed
+        #    self.set_rng = False
+        #else:
+        #    seed = None
+        
+        self.timelimit_env.reset(seed=self.seed)
         return self.get_obs()
 
     def render(self):

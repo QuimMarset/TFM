@@ -8,7 +8,7 @@ add_agent_id: False
 add_last_action: True
 critic_add_agent_id: False
 
-runner: "parallel"
+runner: "episode"
 batch_size_run: 1
 batch_size: 20
 buffer_size: 1000
@@ -17,21 +17,21 @@ t_max: 100000
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
-epsilon_anneal_time: 70000
+epsilon_anneal_time: 50000
 evaluation_epsilon: 0
 
-lr: 0.0005
-critic_lr: 0.0005
+lr: 0.001
+critic_lr: 0.001
 lr_decay_actor: False
 lr_decay_critic: False
 lr_decay_gamma: 0.9
 lr_decay_episodes: 20
 
-grad_norm_clip_actor: 0.5
-grad_norm_clip_critic: 0.5
+grad_norm_clip_actor: 50
+grad_norm_clip_critic: 50
 
 use_td_lambda: True
-td_lambda: 0.6
+td_lambda: 0.8
 
 gamma: 0.99
 
@@ -43,7 +43,7 @@ critic_controller: "maddpg_discrete_controller"
 agent: "rnn"
 critic: "centralized_mlp"
 
-hidden_dim: 128
+hidden_dim: 64
 
 target_update_mode: "soft"
 target_update_tau: 0.005

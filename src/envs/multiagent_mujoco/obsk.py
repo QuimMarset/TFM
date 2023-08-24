@@ -75,6 +75,8 @@ class Node:
         return self.label
 
 
+# TODO: Add None partition to each environment (only added to Swimmer-v4 and Ant-v4)
+
 class HyperEdge:
     """A collection of nodes, that are fully connected (with edges).
 
@@ -377,12 +379,25 @@ def get_parts_and_edges(  # noqa: C901
         )
         globals = [torso]
 
+        """
+            Consider yourself looking at the ant from a zenital view, 
+            the legs are named as follow (the numbers correspong to hip and ankle index):
+                BackRight (4)  | BackLeft (3)
+                FrontRight (2) | FrontLeft (1)
+        """
+            
         if partitioning == "2x4":  # neighboring legs together (front and back)
             parts = [(hip1, ankle1, hip2, ankle2), (hip3, ankle3, hip4, ankle4)]
         elif partitioning == "2x4d":  # diagonal legs together
             parts = [(hip1, ankle1, hip4, ankle4), (hip2, ankle2, hip3, ankle3)]
+        elif partitioning == "2x4_alt":  
+            # Neighbouring legs together (right and left). 
+            # Grouping them together in the direction the ant moves (positive x)
+            parts = [(hip1, ankle1, hip3, ankle3), (hip2, ankle2, hip4, ankle4)]
         elif partitioning == "4x2":
             parts = [(hip1, ankle1), (hip2, ankle2), (hip3, ankle3), (hip4, ankle4)]
+        elif partitioning == None:
+            parts = [(hip1, ankle1, hip2, ankle2, hip3, ankle3, hip4, ankle4)]
         else:
             raise Exception(f"UNKNOWN partitioning config: {partitioning}")
 
@@ -717,6 +732,8 @@ def get_parts_and_edges(  # noqa: C901
 
         if partitioning == "2x1":
             parts = [(joint0,), (joint1,)]
+        elif partitioning == None:
+            parts = [(joint0, joint1)]
         else:
             raise Exception(f"UNKNOWN partitioning config: {partitioning}")
 
@@ -857,7 +874,9 @@ def get_parts_and_edges(  # noqa: C901
             Node(f"rot{i:d}", -n_segs + i, -n_segs + i, i) for i in range(0, n_segs)
         ]
         edges = [HyperEdge(joints[i], joints[i + 1]) for i in range(n_segs - 1)]
-        globals = []
+
+        free_body_rot = Node("free_body_rot", 2, 2, None)
+        globals = [free_body_rot]
 
         parts = [
             tuple(joints[i * n_segs_per_agents : (i + 1) * n_segs_per_agents])

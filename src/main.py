@@ -9,10 +9,15 @@ from utils.logging_results import Logger, GlobalTensorboardLogger
 
 def set_repetition_seeds(config, repetition_index):
     if 'seed' not in config:
-        seed = get_random_seed()
-        config['seed'] = seed
+        config['seed'] = get_random_seed()
     else:
-        config['seed'] += repetition_index * config['batch_size_run']
+        if isinstance(config['seed'], int):
+            config['seed'] += repetition_index * config['batch_size_run']
+        elif isinstance(config['seed'], list):
+            config['seed'] = config['seed'][repetition_index]
+        else:
+            raise ValueError(f'Only integer or list of seeds. Invalid seed {config["seed"]}')
+
     config['env_args']['seed'] = config['seed']
     set_random_seed(config['seed'])
 
@@ -27,8 +32,8 @@ def run_repetition(config, experiment_path, repetition_index):
 
 if __name__ == '__main__':
 
-    default_env_config_name = 'pettingzoo'
-    default_alg_config_name = 'maddpg_discrete'
+    default_env_config_name = 'mujoco_multi'
+    default_alg_config_name = 'facmac_td3'
 
     params = deepcopy(sys.argv)
     params_dict = input_args_to_dict(params)

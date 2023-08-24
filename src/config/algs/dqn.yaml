@@ -7,7 +7,7 @@ seed: 0
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
-epsilon_anneal_time: 100000
+epsilon_anneal_time: 70000
 evaluation_epsilon: 0
 
 runner: "parallel"
@@ -16,9 +16,9 @@ n_batches_to_sample: -1
 batch_size_run: 1
 batch_size: 256
 buffer_size: 1000000
-t_max: 150000
+t_max: 100000
 
-lr: 0.001
+lr: 0.0005
 lr_decay: False
 lr_decay_gamma: 0.5
 lr_decay_episodes: 500
@@ -29,7 +29,7 @@ gamma: 0.99
 
 double_q: True
 
-# optimizer_epsilon: 0.01
+#optimizer_epsilon: 0.0001
 
 learner: "dqn_learner"
 mac: "dqn_mac"

@@ -32,9 +32,14 @@ class TD3Learner(DDPGLearner):
         mask_elems = mask.sum().item()
         
         actions = self.actor.select_actions_train(batch, 0)
-        qs_1 = self.critic.forward_first(batch, 0, actions)
 
-        loss = - (qs_1 * mask).sum() / mask_elems
+        if self.args.use_min_to_update_actor:
+            qs_1, qs_2 = self.critic.forward(batch, 0, actions)
+            qs = th.min(qs_1, qs_2)
+        else:
+            qs = self.critic.forward_first(batch, 0, actions)
+
+        loss = - (qs * mask).sum() / mask_elems
 
         actor_metrics = {
             'actor_loss' : loss.item(),
