@@ -20,6 +20,10 @@ def get_manyagent_swimmer_return_y_ticks(algorithm_name, agent_conf):
         raise ValueError(f'Ticks not defined for {agent_conf}')
 
 
+def get_ant_return_y_ticks(algorithm_name, agent_conf):
+    return range(-1500, 5500, 500)
+
+
 def get_episode_return_plot_y_ticks(env_name, algorithm_name, agent_conf=None):
     if env_name == 'Swimmer-v4':
         return range(-150, 401, 50)
@@ -27,12 +31,14 @@ def get_episode_return_plot_y_ticks(env_name, algorithm_name, agent_conf=None):
         return get_manyagent_swimmer_return_y_ticks(algorithm_name, agent_conf)
     elif env_name == 'pistonball':
         return range(0, 101, 20)
+    elif env_name == 'Ant-v4':
+        return get_ant_return_y_ticks(algorithm_name, agent_conf)
     else:
         raise ValueError(f'Unknown environment {env_name}')
 
 
 def get_episode_length_plot_y_ticks(env_name):
-    if env_name == 'Swimmer-v4' or env_name == 'manyagent_swimmer' or env_name == 'ManySegmentSwimmer':
+    if env_name in ['Swimmer-v4', 'Ant-v4', 'manyagent_swimmer', 'ManySegmentSwimmer']:
         return None
     elif env_name == 'pistonball':
         return range(0, 126, 25)
@@ -56,7 +62,7 @@ def stylize_algorithm_name(algorithm_name):
 def stylize_environment_name(env_name, agent_conf=None):
     if env_name == 'pistonball':
         return 'Pistonball'
-    elif env_name == 'Swimmer-v4':
+    elif env_name in ['Swimmer-v4', 'Ant-v4']:
         return env_name
     elif env_name == 'manyagent_swimmer':
         return f'ManyAgent Swimmer {agent_conf}'

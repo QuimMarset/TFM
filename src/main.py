@@ -1,6 +1,7 @@
 import sys
 from copy import deepcopy
-from run import run
+from runners.trainer import Trainer
+from runners.evaluator import Evaluator
 from utils.plot_results import *
 from utils.main_utils import *
 from utils.logging_results import Logger, GlobalTensorboardLogger
@@ -12,7 +13,7 @@ def set_repetition_seeds(config, repetition_index):
         config['seed'] = get_random_seed()
     else:
         if isinstance(config['seed'], int):
-            config['seed'] += repetition_index * config['batch_size_run']
+            config['seed'] += repetition_index * config['num_envs']
         elif isinstance(config['seed'], list):
             config['seed'] = config['seed'][repetition_index]
         else:
@@ -26,14 +27,20 @@ def run_repetition(config, experiment_path, repetition_index):
     set_repetition_seeds(config, repetition_index)
     logger = Logger(experiment_path, repetition_index)
     logger.save_config(config)
-    run(config, logger, experiment_path)
+
+    if config['evaluate']:
+        runner = Evaluator(config, logger, experiment_path)
+    else:
+        runner = Trainer(config, logger, experiment_path)
+
+    runner.run()
 
 
 
 if __name__ == '__main__':
 
-    default_env_config_name = 'pettingzoo'
-    default_alg_config_name = 'qmix'
+    default_env_config_name = 'mujoco_multi'
+    default_alg_config_name = 'td3'
 
     params = deepcopy(sys.argv)
     params_dict = input_args_to_dict(params)
@@ -55,16 +62,20 @@ if __name__ == '__main__':
     algorithm_name = get_algorithm_name(config)
     
     experiment_path = create_new_experiment(env_name, algorithm_name)
-    
-    num_repetitions = config['repetitions']
-    for index in range(1, num_repetitions + 1):
-        run_path = create_new_experiment_run(experiment_path, index)
-        run_repetition(config.copy(), run_path, index - 1)
 
     if not config['evaluate']:
+        num_repetitions = config['repetitions']
+        for index in range(1, num_repetitions + 1):
+            run_path = create_new_experiment_run(experiment_path, index)
+            run_repetition(config.copy(), run_path, index - 1)
+
         plot_train_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
         plot_test_return_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
         plot_test_episode_length_over_runs(experiment_path, num_repetitions, env_name, algorithm_name)
 
         global_logger = GlobalTensorboardLogger(experiment_path)
         global_logger.log_global_stats(num_repetitions)
+
+    else:
+        run_path = create_new_experiment_run(experiment_path, num_run=1)
+        run_repetition(config.copy(), run_path, repetition_index=0)

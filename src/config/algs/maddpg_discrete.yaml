@@ -8,8 +8,7 @@ add_agent_id: False
 add_last_action: True
 critic_add_agent_id: False
 
-runner: "episode"
-batch_size_run: 1
+num_envs: 1
 batch_size: 20
 buffer_size: 1000
 t_max: 100000

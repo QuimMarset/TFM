@@ -18,8 +18,7 @@ epsilon_finish: 0.05
 epsilon_anneal_time: 30000
 evaluation_epsilon: 0
 
-runner: "episode"
-batch_size_run: 1
+num_envs: 1
 buffer_size: 1000
 batch_size: 20
 t_max: 100000

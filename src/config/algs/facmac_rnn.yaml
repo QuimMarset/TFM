@@ -10,7 +10,7 @@ critic_add_agent_id: False
 critic_add_last_action: True
 
 runner: "parallel"
-batch_size_run: 1
+num_envs: 1
 n_batches_to_sample: 1
 batch_size: 20
 buffer_size: 2000

@@ -32,10 +32,7 @@ class MujocoMulti(MultiAgentEnv):
         self._create_multi_agent_env(**kwargs)
         self._create_agents_observation_spaces()
         self._create_agents_action_spaces()
-        self.set_rng = True
-        self.was_test_mode_before = False
         self.reset()
-        self.train_rng = self.env.unwrapped.np_random
 
 
     def _get_local_categories(self, **kwargs):
@@ -194,25 +191,8 @@ class MujocoMulti(MultiAgentEnv):
         return {}
 
 
-    def reset(self, test_mode=False):
+    def reset(self, seed=None):
         self.steps = 0
-
-        if test_mode and not self.was_test_mode_before:
-            seed = self.seed
-            self.was_test_mode_before = True
-            self.train_rng = self.env.unwrapped.np_random
-        
-        elif not test_mode and self.was_test_mode_before:
-            self.was_test_mode_before = False
-            seed = None
-            self.env.unwrapped.np_random = self.train_rng
-        else:
-            seed = None
-
-        if self.set_rng:
-            seed = self.seed
-            self.set_rng = False
-
         self.env.reset(seed=seed)
         return self.get_obs()
 

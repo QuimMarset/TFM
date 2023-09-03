@@ -19,7 +19,7 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     }
 
     def __init__(self, agent_conf, forward_reward_weight=1.0, ctrl_cost_weight=0.0001, render_mode=None, 
-                 exclude_current_positions_from_observation=True, **kwargs):
+                 exclude_current_positions_from_observation=True,**kwargs):
         
         self.n_agents = int(agent_conf.split("x")[0])
         self.n_segments_per_agents = int(agent_conf.split("x")[1])

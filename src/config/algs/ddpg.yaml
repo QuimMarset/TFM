@@ -4,9 +4,8 @@ name: "ddpg"
 
 seed: 1412
 
-runner: "parallel"
 buffer_transitions: True
-batch_size_run: 1
+num_envs: 1
 n_batches_to_sample: 512
 batch_size: 256
 buffer_size: 1000000

@@ -12,8 +12,7 @@ env_args:
 add_agent_id: False
 add_last_action: False
 
-runner: "parallel"
-batch_size_run: 1
+num_envs: 1
 t_max: 100000
 buffer_size: 2000 
 batch_size: 20

@@ -45,7 +45,7 @@ class MultiAgentEnv:
     def get_action_spaces(self):
         raise NotImplementedError
 
-    def reset(self, test_mode=False):
+    def reset(self, seed=None):
         """ Returns initial observations and states"""
         raise NotImplementedError
 
@@ -68,6 +68,10 @@ class MultiAgentEnv:
         }
 
     def get_env_info(self, args):
+        # Call reset to ensure the methods 
+        # needing the obs and state to get their shape can access it
+        self.reset()
+
         env_info = {
             "state_shape": self.get_state_shape(),
             "obs_shape": self.get_obs_shape(),

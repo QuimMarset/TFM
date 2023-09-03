@@ -7,13 +7,12 @@ seed: 0
 add_agent_id: False
 critic_add_agent_id: False
 
-runner: "episode_ao"
 buffer_transitions: True
-batch_size_run: 1
-n_batches_to_sample: -1
+num_envs: 1
+n_batches_to_sample: 1000
 batch_size: 100
-buffer_size: 50000
-t_max: 100000
+buffer_size: 1000000
+t_max: 20000
 
 increase_step_counter: True
 use_training_steps_to_compute_target_noise: False
@@ -21,18 +20,18 @@ use_training_steps_to_compute_target_noise: False
 start_steps: 10000
 decay_type: linear
 power: 0.5 # only applies to polynomial decay_type
-sigma_start: 0.1
+sigma_start: 0.5
 sigma_finish: 0.1
-sigma_anneal_time: 100000
+sigma_anneal_time: 1000000
 
 use_ornstein: False
 ou_theta: 0.15
 ou_sigma: 0.2
 ou_noise_scale: 0.3
 
-target_sigma_start: 0.2
+target_sigma_start: 0.3
 target_sigma_finish: 0.2
-target_sigma_anneal_time: 100000
+target_sigma_anneal_time: 1000000
 target_noise_clipping: 0.5
 
 gamma: 0.99
@@ -52,23 +51,23 @@ lr_decay_critic: False
 lr_decay_gamma: 0.9
 lr_decay_episodes: 20
 
-grad_norm_clip_actor: 500
-grad_norm_clip_critic: 500
+grad_norm_clip_actor: 500000
+grad_norm_clip_critic: 500000
 
 #optimizer_epsilon: 0.01
 
 learner: "facmac_td3_no_rnn_learner"
 mac: "facmac_td3_no_rnn_mac"
 critic_controller: "factorized_td3_no_rnn_controller"
-agent: "cnn_actor"
-critic: "double_critic_cnn"
-mixer: "qmix_cnn"
+agent: "mlp_actor"
+critic: "double_critic"
+mixer: "qmix"
 
 mixing_embed_dim: 64
 hypernet_layers: 2
 hypernet_embed: 64
 hyper_initialization_nonzeros: 0
-hidden_dim: 128
+hidden_dim: 64
 
 target_update_mode: "soft"
 target_update_tau: 0.005
@@ -81,5 +80,5 @@ save_model_interval: 100000
 
 save_model_end: True
 
-#checkpoint_path: D:/MAI/TFM/Resultats/\many_swimmer_10/FACMAC_TD3/compare_13/experiment_79/run_1/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/FACMAC_TD3/compare_2/qvel/experiment_49/run_1/models
+evaluate: True

@@ -28,8 +28,8 @@ class PettingZooWrapper(MultiAgentEnv):
         self.state_entity_feats = self.env.state_entity_feats
 
 
-    def reset(self, test_mode):
-        return self.env.reset(test_mode)
+    def reset(self, seed=None):
+        return self.env.reset(seed)
 
 
     def step(self, actions):

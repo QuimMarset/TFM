@@ -10,10 +10,9 @@ epsilon_finish: 0.05
 epsilon_anneal_time: 70000
 evaluation_epsilon: 0
 
-runner: "parallel"
 buffer_transitions: True
 n_batches_to_sample: -1
-batch_size_run: 1
+num_envs: 1
 batch_size: 256
 buffer_size: 1000000
 t_max: 100000

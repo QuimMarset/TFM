@@ -2,7 +2,7 @@ from functools import partial
 from envs.multiagentenv import MultiAgentEnv
 from envs.petting_zoo.pettingzoo_wrapper import PettingZooWrapper
 from envs.multiagent_mujoco.mujoco_multi import MujocoMulti
-from envs.multiagent_mujoco_farama.mujoco_multi_wrapper import MujocoMultiFaramaWrapper
+#from envs.multiagent_mujoco_farama.mujoco_multi_wrapper import MujocoMultiFaramaWrapper
 #from envs.adaptive_optics.ao_wrapper import AdaptiveOpticsWrapper
 
 

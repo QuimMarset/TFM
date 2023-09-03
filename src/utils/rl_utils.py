@@ -14,31 +14,6 @@ def build_td_lambda_targets(rewards, terminated, mask, target_qs, n_agents, gamm
     return ret[:, 0:-1]
 
 
-def preprocess_scheme(scheme, preprocess):
-
-    if preprocess is not None:
-        for k in preprocess:
-            assert k in scheme
-            new_k = preprocess[k][0]
-            transforms = preprocess[k][1]
-
-            vshape = scheme[k]["vshape"]
-            dtype = scheme[k]["dtype"]
-            for transform in transforms:
-                vshape, dtype = transform.infer_output_info(vshape, dtype)
-
-            scheme[new_k] = {
-                "vshape": vshape,
-                "dtype": dtype
-            }
-            if "group" in scheme[k]:
-                scheme[new_k]["group"] = scheme[k]["group"]
-            if "episode_const" in scheme[k]:
-                scheme[new_k]["episode_const"] = scheme[k]["episode_const"]
-
-    return scheme
-
-
 def build_q_lambda_targets(rewards, terminated, mask, exp_qvals, qvals, gamma, td_lambda):
     # Assumes  <target_qs > in B*T*A and <reward >, <terminated >, <mask > in (at least) B*T-1*1
     # Initialise  last  lambda -return  for  not  terminated  episodes

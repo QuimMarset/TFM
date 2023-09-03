@@ -27,7 +27,13 @@ class MADDPGLearner(BaseActorCriticLearner):
 
             loss_q_term += - (qs_i * mask).sum() / mask_elems
 
-        loss = loss_q_term / self.n_agents + (actions_policy[:, :-1]**2).mean() * 1e-3
+        regularization_weight = 1e-3
+        if not self.args.actions_regularization:
+            regularization_weight = 0
+
+        regularization_term = regularization_weight * (actions_policy[:, :-1]**2).mean()
+
+        loss = loss_q_term / self.n_agents + regularization_term
 
         actor_metrics = {
             'actor_loss' : loss.item(),

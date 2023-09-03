@@ -3,7 +3,7 @@
 buffer_cpu_only: True
 
 runner: "episode"
-batch_size_run: 1
+num_envs: 1
 
 test_nepisode: 20
 test_interval: 2000
@@ -36,9 +36,6 @@ n_batches_to_sample: 1
 optimizer_epsilon: 0.00000001
 
 use_cuda: True
-
-standardise_returns: False
-standardise_rewards: False
 
 env_args:
     obs_entity_mode: False
