@@ -2,7 +2,7 @@ env:  "adaptive_optics"
 
 env_args: 
     parameter_file: sh_10x10_2m
-    partition: 2 # n_agents
+    partition: 4 # n_agents
     partial_observability: False
     episode_limit: 1000
     # State

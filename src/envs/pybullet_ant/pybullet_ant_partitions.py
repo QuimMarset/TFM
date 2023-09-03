@@ -27,22 +27,23 @@ class Torso:
 """
     Consider yourself looking at the ant from a zenital view, 
     the legs are named as follow (the numbers correspong to hip and ankle index):
-        BackLeft (3)  | BackRight (4)
-        FrontLeft (1) | FrontRight (2)
+        FrontRight (2) | FrontLeft (1)
+        BackLeft (3)   | BackRight (4)
+    Actions come as follow: [hip_1, ankle_1, hip_2, ankle_2, hip_3, ankle_3, hip_4, ankle_4]
 """
 
 
-hip_1 = Hinge('hip_1', 7, 21, 0)
-ankle_1 = Hinge('ankle_1', 8, 22, 1)
+hip_1 = Hinge('hip_1', 8, 9, 0)
+ankle_1 = Hinge('ankle_1', 10, 11, 1)
 
-hip_3 = Hinge('hip_3', 9, 23, 2)
-ankle_3 = Hinge('ankle_3', 10, 24, 3)
+hip_2 = Hinge('hip_2', 12, 13, 2)
+ankle_2 = Hinge('ankle_2', 14, 15, 3)
 
-hip_4 = Hinge('hip_4', 11, 25, 4)
-ankle_4 = Hinge('ankle_4', 12, 26, 5)
+hip_3 = Hinge('hip_3', 16, 17, 4)
+ankle_3 = Hinge('ankle_3', 18, 19, 5)
 
-hip_2 = Hinge('hip_2', 13, 27, 6)
-ankle_2 = Hinge('ankle_2', 14, 28, 7)
+hip_4 = Hinge('hip_4', 20, 21, 6)
+ankle_4 = Hinge('ankle_4', 22, 23, 7)
 
 
 torso = Torso(0, 2, 3, 6, 15, 17, 18, 20)

@@ -1,14 +1,12 @@
 from envs import REGISTRY as env_REGISTRY
 from functools import partial
 from components.episode_buffer import EpisodeBatch
-from multiprocessing import Pipe, Process
 import numpy as np
 import torch as th
-import time
 
 
 
-class ParallelRunnerOne:
+class ParallelRunnerOneThread:
 
     def __init__(self, args, logger):
         self.args = args
@@ -44,17 +42,21 @@ class ParallelRunnerOne:
         self.groups = groups
         self.preprocess = preprocess
 
+
     def get_env_info(self):
         return self.env_info
 
+
     def save_replay(self):
         pass
+
 
     def close_env(self):
         for env in self.envs:
             env.close()
 
-    def reset(self):
+
+    def reset(self, test_mode):
         self.batch = self.new_batch()
 
         pre_transition_data = {
@@ -63,7 +65,7 @@ class ParallelRunnerOne:
         }
 
         for env in self.envs:
-            env.reset()
+            env.reset(test_mode)
             pre_transition_data["state"].append(env.get_state())
             pre_transition_data["obs"].append(env.get_obs())
 
@@ -74,7 +76,7 @@ class ParallelRunnerOne:
 
 
     def run(self, test_mode=False, **kwargs):
-        self.reset()
+        self.reset(test_mode)
         self.mac.init_hidden(batch_size=self.batch_size)
 
         all_terminated = False
@@ -83,8 +85,6 @@ class ParallelRunnerOne:
         terminated = [False for _ in range(self.batch_size)]
         envs_not_terminated = [b_idx for b_idx, termed in enumerate(terminated) if not termed]
         final_env_infos = []
-
-        mean_step_time = []
 
         while True:
 
@@ -106,6 +106,15 @@ class ParallelRunnerOne:
                 "reward": [],
                 "terminated": [],
             }
+            if getattr(self.args, "num_previous_transitions", -1) > 0:
+                post_transition_data["prev_obs"] = []
+                post_transition_data['prev_actions'] = []
+            
+            # Update envs_not_terminated
+            envs_not_terminated = [b_idx for b_idx, termed in enumerate(terminated) if not termed]
+            all_terminated = all(terminated)
+            if all_terminated:
+                break
             
             # Data for the next step we will insert in order to select an action
             pre_transition_data = {
@@ -113,53 +122,41 @@ class ParallelRunnerOne:
                 "obs": []
             }
 
-            start_time = time.time()
-
-            # Send actions to each env
             action_idx = 0
             for idx, env in enumerate(self.envs):
                 if idx in envs_not_terminated:
-                    if not terminated[idx]:
-                        
-                        reward, done, truncated, env_info = env.step(cpu_actions[action_idx])
-                        if isinstance(reward, (list, tuple)):
-                            assert (reward[1:] == reward[:-1]), "reward has to be cooperative!"
-                            reward = reward[0]
-            
-                        state = env.get_state()
-                        obs = env.get_obs()
+                    
+                    reward, done, truncated, env_info = env.step(cpu_actions[action_idx])
 
-                        post_transition_data["reward"].append((reward,))
+                    if isinstance(reward, (list, tuple)):
+                        assert (reward[1:] == reward[:-1]), "reward has to be cooperative!"
+                        reward = reward[0]
 
-                        episode_returns[idx] += reward
-                        episode_lengths[idx] += 1
-                        
-                        if not test_mode:
-                            self.executed_steps += 1
-                            if getattr(self.args, 'increase_step_counter', True):
-                                self.t_env += 1
+                    post_transition_data["reward"].append((reward,))
 
-                        if done or truncated:
-                            final_env_infos.append(env_info)
+                    episode_returns[idx] += reward
+                    episode_lengths[idx] += 1
+                    
+                    if not test_mode:
+                        self.executed_steps += 1
+                        if getattr(self.args, 'increase_step_counter', True):
+                            self.t_env += 1
 
-                        terminated[idx] = done or truncated
-                        post_transition_data["terminated"].append((done,))
+                    if done or truncated:
+                        final_env_infos.append(env_info)
 
-                        # Data for the next timestep needed to select an action
-                        pre_transition_data["state"].append(state)
-                        pre_transition_data["obs"].append(obs)
+                    terminated[idx] = done or truncated
+                    post_transition_data["terminated"].append((done,))
+
+                    if getattr(self.args, "num_previous_transitions", -1) > 0:
+                        post_transition_data['prev_obs'].append(self._build_prev_obs(idx, self.t))
+                        post_transition_data['prev_actions'].append(self._build_prev_actions(idx, self.t))
+
+                    # Data for the next timestep needed to select an action
+                    pre_transition_data["state"].append(env.get_state())
+                    pre_transition_data["obs"].append(env.get_obs())
 
                     action_idx += 1
-
-            # Update envs_not_terminated
-            envs_not_terminated = [b_idx for b_idx, termed in enumerate(terminated) if not termed]
-            all_terminated = all(terminated)
-            if all_terminated:
-                break
-                    
-            end_time = time.time()
-
-            mean_step_time.append(end_time - start_time)
 
             # Add post_transiton data into the batch
             self.batch.update(post_transition_data, bs=envs_not_terminated, ts=self.t, mark_filled=False)
@@ -170,8 +167,6 @@ class ParallelRunnerOne:
             # Add the pre-transition data
             self.batch.update(pre_transition_data, bs=envs_not_terminated, ts=self.t)
 
-        print(f'Average seconds to complete a step {np.mean(mean_step_time)}')
-
         if not test_mode and not getattr(self.args, 'increase_step_counter', True):
             self.t_env += self.executed_steps
 
@@ -179,7 +174,6 @@ class ParallelRunnerOne:
         env_stats = []
         for env in self.envs:
             env_stats.append(env.get_stats())
-
 
         cur_stats = self.test_stats if test_mode else self.train_stats
         cur_returns = self.test_returns if test_mode else self.train_returns
@@ -214,3 +208,35 @@ class ParallelRunnerOne:
             if k != "n_episodes":
                 self.logger.log_stat(prefix + k + "_mean" , v/stats["n_episodes"], self.t_env)
         stats.clear()
+
+
+    def _build_prev_obs(self, batch_index, t):
+        if t >= self.args.num_previous_transitions:
+            obs = [self.batch["obs"][batch_index, i] for i in range(t-self.args.num_previous_transitions, t)]
+        
+        else:
+            obs = [self.batch["obs"][batch_index, i] for i in range(t)]
+            for _ in range(t, self.args.num_previous_transitions):
+                obs.append(self.batch['obs'][batch_index, t])
+        
+        obs = th.cat(obs, dim=-1).cpu().numpy()
+        return obs
+
+
+    def _build_prev_actions(self, batch_index, t):
+        window = self.args.num_previous_transitions
+        
+        if t == 0:
+            actions = [th.zeros_like(self.batch["actions"][batch_index, t]) for _ in range(window)]
+        
+        elif t >= window:
+            actions = [self.batch["actions"][batch_index, i] for i in range(t-window, t)]
+        
+        else:
+            actions = [self.batch["actions"][batch_index, i] for i in range(t)]
+            for _ in range(t, window):
+                actions.append(self.batch['actions'][batch_index, t-1])
+        
+        actions = th.cat(actions, dim=-1).detach().cpu().numpy()
+        return actions
+    

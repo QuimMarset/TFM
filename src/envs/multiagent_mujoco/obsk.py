@@ -381,19 +381,20 @@ def get_parts_and_edges(  # noqa: C901
 
         """
             Consider yourself looking at the ant from a zenital view, 
-            the legs are named as follow (the numbers correspong to hip and ankle index):
-                BackRight (4)  | BackLeft (3)
+            the legs are named like the XML file, the numbers correspong to hip and ankle index:
                 FrontRight (2) | FrontLeft (1)
+                BackLeft (3)   | BackRight (4)
+            The original action in the single-agent comes as [hip_4, ankle_4, hip_1, ankle_1, hip_2, ankle_2, hip_3, ankle_3]
         """
             
         if partitioning == "2x4":  # neighboring legs together (front and back)
             parts = [(hip1, ankle1, hip2, ankle2), (hip3, ankle3, hip4, ankle4)]
         elif partitioning == "2x4d":  # diagonal legs together
-            parts = [(hip1, ankle1, hip4, ankle4), (hip2, ankle2, hip3, ankle3)]
+            parts = [(hip1, ankle1, hip3, ankle3), (hip2, ankle2, hip4, ankle4)]
         elif partitioning == "2x4_alt":  
             # Neighbouring legs together (right and left). 
             # Grouping them together in the direction the ant moves (positive x)
-            parts = [(hip1, ankle1, hip3, ankle3), (hip2, ankle2, hip4, ankle4)]
+            parts = [(hip1, ankle1, hip4, ankle4), (hip2, ankle2, hip3, ankle3)]
         elif partitioning == "4x2":
             parts = [(hip1, ankle1), (hip2, ankle2), (hip3, ankle3), (hip4, ankle4)]
         elif partitioning == None:

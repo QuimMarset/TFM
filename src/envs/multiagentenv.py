@@ -1,6 +1,6 @@
 
 
-class MultiAgentEnv(object):
+class MultiAgentEnv:
 
     def step(self, actions):
         """ Returns reward, terminated, info """
@@ -45,7 +45,7 @@ class MultiAgentEnv(object):
     def get_action_spaces(self):
         raise NotImplementedError
 
-    def reset(self):
+    def reset(self, test_mode=False):
         """ Returns initial observations and states"""
         raise NotImplementedError
 

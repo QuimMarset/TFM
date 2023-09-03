@@ -5,128 +5,136 @@ import numpy as np
 from envs.multiagentenv import MultiAgentEnv
 from envs.multiagent_mujoco.manyagent_ant import ManyAgentAntEnv
 from envs.multiagent_mujoco.manyagent_swimmer import ManyAgentSwimmerEnv
-from envs.multiagent_mujoco.swimmer_v4_revised import SwimmerEnv
 from envs.multiagent_mujoco.obsk import get_joints_at_kdist, get_parts_and_edges, build_obs
 
 
 
-# using code from https://github.com/ikostrikov/pytorch-ddpg-naf
-class NormalizedActions(gym.ActionWrapper):
-
-    def _action(self, action):
-        action = (action + 1) / 2
-        action *= (self.action_space.high - self.action_space.low)
-        action += self.action_space.low
-        return action
-
-    def action(self, action_):
-        return self._action(action_)
-
-    def _reverse_action(self, action):
-        action -= self.action_space.low
-        action /= (self.action_space.high - self.action_space.low)
-        action = action * 2 - 1
-        return action
-
-
 class MujocoMulti(MultiAgentEnv):
 
-    def __init__(self, **kwargs):
-        self.scenario = kwargs["scenario"]  # e.g. Ant-v4
-        self.agent_conf = kwargs["agent_conf"]  # e.g. '2x3'
-
-        self.seed = kwargs.get('seed', None)
-        self.set_rng = True
+    def __init__(self, scenario, agent_conf, agent_obsk=0, global_categories=None, seed=None, episode_limit=1000, **kwargs):
+        self.scenario = scenario  # e.g. Ant-v4
+        self.agent_conf = agent_conf  # e.g. '2x3'
+        self.agent_obsk = agent_obsk
+        self.k_categories = self._get_local_categories(**kwargs)
+        self.global_categories = self._get_global_categories(global_categories)
+        self.seed = seed
+        self.episode_limit = episode_limit
 
         self.agent_partitions, self.mujoco_edges, self.mujoco_globals = get_parts_and_edges(self.scenario,
                                                                                              self.agent_conf)
 
         self.n_agents = len(self.agent_partitions)
-        self.n_actions = max([len(l) for l in self.agent_partitions])
+        self.actions_per_agent = [len(agent_partition) for agent_partition in self.agent_partitions]
 
-        self.agent_obsk = kwargs.get("agent_obsk", None) # if None, fully observable else k>=0 implies observe nearest k agents or joints
-        self.agent_obsk_agents = kwargs.get("agent_obsk_agents", False)  # observe full k nearest agents (True) or just single joints (False)
+        self.k_dicts = [get_joints_at_kdist(self.agent_partitions[agent_id], self.mujoco_edges, k=self.agent_obsk) 
+                        for agent_id in range(self.n_agents)]
 
-        if self.agent_obsk is not None:
-            self.k_categories_label = kwargs.get("k_categories")
-            if self.k_categories_label is None:
-                if self.scenario in ["Ant-v4", "manyagent_ant"]:
-                    # Gymansium.MuJoCo.Ant-v4 has disabled cfrc_ext by default
-                    self.k_categories_label = "qpos,qvel|qpos"
-                elif self.scenario in ["Humanoid-v4", "HumanoidStandup-v4"]:
-                    self.k_categories_label = "qpos,qvel,cfrc_ext,cvel,cinert,qfrc_actuator|qpos"
-                elif self.scenario in ["Reacher-v4"]:
-                    self.k_categories_label = "qpos,qvel,fingertip_dist|qpos"
-                elif self.scenario in ["coupled_half_cheetah"]:
-                    self.k_categories_label = "qpos,qvel,ten_J,ten_length,ten_velocity|"
-                else:
-                    self.k_categories_label = "qpos,qvel|qpos"
-
-            k_split = self.k_categories_label.split("|")
-            self.k_categories = [k_split[k if k < len(k_split) else -1].split(",") for k in range(self.agent_obsk+1)]
-
-            self.global_categories_label = kwargs.get("global_categories")
-            self.global_categories = self.global_categories_label.split(",") if self.global_categories_label is not None else []
+        self._create_multi_agent_env(**kwargs)
+        self._create_agents_observation_spaces()
+        self._create_agents_action_spaces()
+        self.set_rng = True
+        self.was_test_mode_before = False
+        self.reset()
+        self.train_rng = self.env.unwrapped.np_random
 
 
-        if self.agent_obsk is not None:
-            self.k_dicts = [get_joints_at_kdist(self.agent_partitions[agent_id],
-                                                self.mujoco_edges,
-                                                k=self.agent_obsk) 
-                                                for agent_id in range(self.n_agents)]
+    def _get_local_categories(self, **kwargs):
+        # Categories for current agent, Categories for neighbour agents (obsk > 0)
+        
+        if self.scenario in ["Ant-v4", "manyagent_ant"]:
+            if kwargs.get('use_contact_forces', False):
+                categories = ["qpos,qvel,cfrc_ext", "qpos"]
+            else:
+                # Gymansium.MuJoCo.Ant-v4 has disabled cfrc_ext by default
+                categories = ["qpos,qvel", "qpos"]
+        
+        elif self.scenario in ["Humanoid-v4", "HumanoidStandup-v4"]:
+            categories = ["qpos,qvel,cfrc_ext,cvel,cinert,qfrc_actuator", "qpos"]
+        
+        elif self.scenario in ["Reacher-v4"]:
+            categories = ["qpos,qvel,fingertip_dist", "qpos"]
+        
+        elif self.scenario in ["coupled_half_cheetah"]:
+            categories = ["qpos,qvel,ten_J,ten_length,ten_velocity"]
+        
+        else:
+            categories = ["qpos,qvel", "qpos"]
+        
+        local_categories = [
+            categories[k if k < len(categories) else -1].split(",")
+            for k in range(self.agent_obsk + 1)
+        ]
+        return local_categories
+        
 
-        # load scenario from script
-        self.episode_limit = kwargs.get('episode_limit', 1000)
+    def _get_global_categories(self, global_categories):
+        if global_categories is None:
+            return []
+        global_categories = global_categories.split(",")
 
-        if self.scenario in ['manyagent_ant', 'manyagent_swimmer', 'Swimmer-v4']:
+        if self.scenario in ["Humanoid-v4", "HumanoidStandup-v4"]:
+            available_categories = ["qpos", "qvel", "cinert", "cvel", "qfrc_actuator", "cfrc_ext"]
+        else:
+            available_categories = ["qpos", "qvel"]
+
+        for category in global_categories:
+            if category not in available_categories:
+                raise ValueError(f"Invalid global category {category}. Available for {self.scenario} are {available_categories}")
+        
+        return global_categories
+    
+
+    def _create_env_custom_args(self, **kwargs):
+        custom_args = kwargs.copy()
+        if 'obs_entity_mode' in kwargs:
+            custom_args.pop('obs_entity_mode')
+        if 'state_entity_mode' in kwargs:
+            custom_args.pop('state_entity_mode')
+        return custom_args
+    
+
+    def _create_multi_agent_env(self, **kwargs):
+        if self.scenario in ['manyagent_ant', 'manyagent_swimmer']:
             if self.scenario == 'manyagent_ant':
                 env_class = ManyAgentAntEnv
-            elif self.scenario == 'manyagent_swimmer':
+            else:
                 env_class = ManyAgentSwimmerEnv
-            elif self.scenario == 'Swimmer-v4':
-                env_class = SwimmerEnv
 
-            self.wrapped_env = NormalizedActions(TimeLimit(env_class(**kwargs), max_episode_steps=self.episode_limit))
+            custom_args = kwargs.copy()
+            custom_args['agent_conf'] = self.agent_conf
+            self.env = TimeLimit(env_class(**custom_args), self.episode_limit)
 
         else:
-            custom_args = kwargs.get('custom_args', {'render_mode': kwargs.get('render_mode', None)})
-            # Gym's make already applies TimeLimit in certain environments like Ant-v4
-            self.wrapped_env = NormalizedActions(gym.make(self.scenario, **custom_args))
+            # Gym's make already applies TimeLimit in the environments like Ant-v4
+            custom_args = self._create_env_custom_args(**kwargs)
+            self.env = gym.make(self.scenario, **custom_args)
 
-        self.timelimit_env = self.wrapped_env.env
-        self.timelimit_env._max_episode_steps = self.episode_limit
-        self.env = self.timelimit_env.env
-        self.timelimit_env.reset()
+        self.unwrapped_env = self.env.unwrapped
+        self.env.reset()
+    
 
-        low = np.min(self.wrapped_env.observation_space.low)
-        high = np.max(self.wrapped_env.observation_space.high)
-        self.observation_space = [Box(low=np.array([low]*self.n_agents),
-                                      high=np.array([high]*self.n_agents)) for _ in range(self.n_agents)]
+    def _create_agents_observation_spaces(self):
+        low = np.min(self.env.observation_space.low)
+        high = np.max(self.env.observation_space.high)
+        self.observation_spaces = []
+        for i in range(self.n_agents):
+            shape = len(self.get_obs_agent(i))
+            self.observation_spaces.append(
+                Box(low, high, (shape,))
+            )
 
-        acdims = [len(ap) for ap in self.agent_partitions]
-        self.action_space = tuple([
-            Box(self.env.action_space.low[sum(acdims[:a]):sum(acdims[:a+1])],
-                self.env.action_space.high[sum(acdims[:a]):sum(acdims[:a+1])],
-                seed=self.seed) 
+
+    def _create_agents_action_spaces(self):
+        low = np.min(self.env.action_space.low)
+        high = np.max(self.env.action_space.high)
+        self.action_spaces = tuple([
+            Box(low, high, (self.actions_per_agent[a], ), seed=self.seed) 
             for a in range(self.n_agents)])
-        
-            
-        self.state_entity_mode = kwargs.get('state_entity_mode', False)
-        if self.state_entity_mode:
-            self._set_entity_attributes()
-        
-
-    def _set_entity_attributes(self):
-        self.n_entities = self.env.unwrapped.n_entities_obs
-        self.n_entities_obs = self.env.unwrapped.n_entities_obs
-        self.n_entities_state = self.env.unwrapped.n_entities_state
-        self.obs_entity_feats = self.env.unwrapped.obs_entity_feats
-        self.state_entity_feats = self.env.unwrapped.state_entity_feats
         
 
     def step(self, actions):
         # we need to map actions back into MuJoCo action space
-        num_actions = sum([action_space_i.low.shape[0] for action_space_i in self.action_space])
+        num_actions = sum([action_space.low.shape[0] for action_space in self.action_spaces])
         env_actions = np.zeros(num_actions)
 
         for a, partition in enumerate(self.agent_partitions):
@@ -136,7 +144,7 @@ class MujocoMulti(MultiAgentEnv):
         if np.isnan(actions).any():
             raise Exception("FATAL: At least one action is NaN!")
 
-        obs_n, reward_n, done_n, truncated_n, info_n = self.wrapped_env.step(env_actions)
+        _, reward_n, done_n, truncated_n, info_n = self.env.step(env_actions)
         self.steps += 1
 
         info = {}
@@ -161,12 +169,8 @@ class MujocoMulti(MultiAgentEnv):
 
 
     def get_obs_agent(self, agent_id):
-        if self.agent_obsk is None:
-            return self.env.unwrapped._get_obs()
-        else:
-            obs = build_obs(self.env.data, self.k_dicts[agent_id], self.k_categories, 
-                                     self.mujoco_globals, self.global_categories)
-            return obs
+        return build_obs(self.env.data, self.k_dicts[agent_id], self.k_categories, 
+                         self.mujoco_globals, self.global_categories)
 
 
     def get_obs_shape(self):
@@ -178,52 +182,60 @@ class MujocoMulti(MultiAgentEnv):
 
 
     def get_state(self):
-        state = self.env.unwrapped._get_obs()
-        return state
+        # _get_obs() returns the full-observable state
+        return self.unwrapped_env._get_obs()
 
 
     def get_state_shape(self):
-        """ Returns the shape of the state"""
         return len(self.get_state())
 
-
-    def get_total_actions(self):
-        """ Returns the total number of actions an agent could ever take """
-        return self.n_actions # CAREFUL! - for continuous dims, this is action space dim rather
-        # return self.env.action_space.shape[0]
 
     def get_stats(self):
         return {}
 
-    def reset(self):
-        """ Returns initial observations and states"""
+
+    def reset(self, test_mode=False):
         self.steps = 0
 
-        # We should set the RNG once, when calling reset() by passing the seed. Then, the seed should be None
-        # Otherwise, we will always reset the RNG, generating identical episodes
-        #if self.set_rng:
-        #    seed = self.seed
-        #    self.set_rng = False
-        #else:
-        #    seed = None
+        if test_mode and not self.was_test_mode_before:
+            seed = self.seed
+            self.was_test_mode_before = True
+            self.train_rng = self.env.unwrapped.np_random
         
-        self.timelimit_env.reset(seed=self.seed)
+        elif not test_mode and self.was_test_mode_before:
+            self.was_test_mode_before = False
+            seed = None
+            self.env.unwrapped.np_random = self.train_rng
+        else:
+            seed = None
+
+        if self.set_rng:
+            seed = self.seed
+            self.set_rng = False
+
+        self.env.reset(seed=seed)
         return self.get_obs()
+
 
     def render(self):
         return self.env.render()
 
+
     def close(self):
         self.env.close()
     
+
     def get_action_shape(self):
-        return self.action_space[0].shape[0]
+        return self.action_spaces[0].shape[0]
     
+
     def get_action_dtype(self):
-        return self.action_space[0].dtype
+        return self.action_spaces[0].dtype
     
+
     def has_discrete_actions(self):
         return False
     
+
     def get_action_spaces(self):
-        return self.action_space
+        return self.action_spaces

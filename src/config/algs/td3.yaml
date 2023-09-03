@@ -7,7 +7,7 @@ seed: 0
 runner: "parallel"
 buffer_transitions: True
 batch_size_run: 1
-n_batches_to_sample: 1000
+n_batches_to_sample: -1
 batch_size: 256
 buffer_size: 1000000
 t_max: 1000000
@@ -29,7 +29,7 @@ target_sigma_finish: 0.05
 target_sigma_anneal_time: 1000000
 target_noise_clipping: 0.5
 
-gamma: 0.9999
+gamma: 0.99
 
 update_actor_targets_freq: 1
 

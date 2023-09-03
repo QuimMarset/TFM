@@ -25,9 +25,14 @@ class PistonballWrapper(MultiAgentEnv):
         
         self.n_agents = num_pistons
         self.continuous = continuous
-        self.seed_ = kwargs.get('seed', None)
         self.episode_limit = episode_limit
+        
+        self.seed = kwargs.get('seed', None)
+        self.set_rng = True
+        self.was_test_mode_before = False
         self.reset()
+        self.train_rng = self.env.unwrapped.np_random
+        
         if state_entity_mode:
             self._set_entity_attributes()
 
@@ -54,8 +59,25 @@ class PistonballWrapper(MultiAgentEnv):
         return value_dict
 
 
-    def reset(self):
-        obs_dict = self.env.reset(self.seed_)
+    def reset(self, test_mode=False):
+
+        if test_mode and not self.was_test_mode_before:
+            seed = self.seed
+            self.was_test_mode_before = True
+            self.train_rng = self.env.unwrapped.np_random
+        
+        elif not test_mode and self.was_test_mode_before:
+            self.was_test_mode_before = False
+            seed = None
+            self.env.unwrapped.np_random = self.train_rng
+        else:
+            seed = None
+
+        if self.set_rng:
+            seed = self.seed
+            self.set_rng = False
+        
+        obs_dict = self.env.reset(seed)
         self.observations = self._transform_dict_to_list(obs_dict)
         return self.observations
 

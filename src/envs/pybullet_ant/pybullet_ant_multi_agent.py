@@ -21,6 +21,8 @@ class PyBulletAntMultiAgent(MultiAgentEnv):
         self._create_agents_observation_spaces()
         self.agent_partition = create_ant_partition(num_agents)
 
+        self.reset()
+
 
     def _check_number_of_agents(self, num_agents):
         if num_agents not in [1, 2, 4]:
@@ -111,7 +113,7 @@ class PyBulletAntMultiAgent(MultiAgentEnv):
 
 
     def reset(self, test_mode=False):
-        self.env.reset()
+        self.env.reset(self.seed)
         return self.get_obs()
 
 

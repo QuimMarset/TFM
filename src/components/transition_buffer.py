@@ -105,6 +105,7 @@ class TransitionsReplayBuffer(TransitionsBatch):
         super().__init__(buffer_size, scheme, groups, device=device)
         self.buffer_size = buffer_size
         self.buffer_index = 0
+        self.filled = False
 
 
     def add_transitions(self, transition_data):
@@ -133,11 +134,13 @@ class TransitionsReplayBuffer(TransitionsBatch):
 
             self.data['filled'][self.buffer_index, :] = 1
 
+            if self.buffer_index + 1 >= self.buffer_size:
+                self.filled = True
             self.buffer_index = (self.buffer_index + 1) % self.buffer_size
 
 
     def can_sample(self, batch_size):
-        return self.buffer_index >= batch_size
+        return self.filled or self.buffer_index >= batch_size
 
 
     def sample(self, batch_size):

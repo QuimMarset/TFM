@@ -18,8 +18,8 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         "render_fps": 25,
     }
 
-    def __init__(self, **kwargs):
-        agent_conf = kwargs.get("agent_conf")
+    def __init__(self, agent_conf, forward_reward_weight=1.0, ctrl_cost_weight=0.0001, render_mode=None, 
+                 exclude_current_positions_from_observation=True, **kwargs):
         
         self.n_agents = int(agent_conf.split("x")[0])
         self.n_segments_per_agents = int(agent_conf.split("x")[1])
@@ -27,14 +27,12 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self.n_controllable_segments = self.n_agents * self.n_segments_per_agents
         self.n_segments = self.n_controllable_segments + 1
 
-        self.forward_reward_weight = kwargs.get('forward_reward_weight', 1.0)
-        self.ctrl_cost_weight = kwargs.get('ctrl_cost_weight', 0.0001)
-        self.render_mode = kwargs.get('render_mode', None)
+        self.forward_reward_weight = forward_reward_weight
+        self.ctrl_cost_weight = ctrl_cost_weight
+        self.render_mode = render_mode
 
         self.exclude_current_positions_from_observation = \
-            kwargs.get('exclude_current_positions_from_observation', True)
-        
-        self.state_entity_mode = kwargs.get('state_entity_mode', False)
+            exclude_current_positions_from_observation
 
         self._set_asset_path()
         self._create_xml_file()
@@ -51,9 +49,7 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         mujoco_env.MujocoEnv.__init__(self, self.asset_path, self.frame_skip, observation_space, 
                                       self.render_mode, camera_name=camera_name)
-        utils.EzPickle.__init__(self)
-
-        self._set_entity_attributes()        
+        utils.EzPickle.__init__(self)      
 
     
     def _set_asset_path(self):
@@ -66,18 +62,6 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         if not os.path.exists(self.asset_path):
             print(f"Auto-Generating Manyagent Swimmer asset with {self.n_controllable_segments} controllable segments at {self.asset_path}.")
             self._generate_asset(self.n_controllable_segments, self.asset_path)
-
-
-    def _set_entity_attributes(self):
-        # The number of hinges each agent controls
-        self.n_entities_obs = self.n_segments_per_agents
-        # The number of total segments (i.e. controllable + 1)
-        self.n_entities_state = self.n_segments
-        # Observation only contains the angle and angular velocity of each controllable hinge
-        self.obs_entity_feats = 2
-        # State contains the features of all the joints defined per each segment. 
-        # The first has the hinge plus the sliders
-        self.state_entity_feats = 4 if self.exclude_current_positions_from_observation else 6
 
 
     def _generate_asset(self, n_controllable_segments, asset_path):
@@ -158,12 +142,6 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     
 
     def _get_obs(self):
-        if self.state_entity_mode:
-            return self._get_obs_entity()
-        return self._get_obs_default()
-    
-
-    def _get_obs_default(self):
         # Used as state rather than observation
         position = self.data.qpos.flat.copy()
         velocity = self.data.qvel.flat.copy()
@@ -173,38 +151,6 @@ class ManyAgentSwimmerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         observation = np.concatenate([position, velocity]).ravel()
         return observation
-
-
-    def _get_obs_entity(self):
-        """
-        Used as state rather than observation
-        Defined as the composition of the segments' joint features
-        First segment has extra features because of the extra slider joints
-        pos_x and pos_y not included if exclude_current_positions_from_observation = True
-        Hence, we only consider 4 features
-        [
-            [angle_x_axis, deriv_angle, vel_x, vel_y, pos_x, pos_y]
-            [angle_x_axis, deriv_angle, 0, 0, 0, 0] * n_segments
-        ]
-        """
-        num_features = 6
-        if self.exclude_current_positions_from_observation:
-            num_features = 4
-        
-        obs = np.zeros((self.n_segments, num_features))
-
-        obs[0, 0] = self.data.qpos[2]
-        obs[0, 1] = self.data.qvel[2]
-        obs[0, 2:4] = self.data.qvel[:2]
-
-        if not self.exclude_current_positions_from_observation:
-            obs[0, 4:] = self.data.qpos[:2]
-
-        for i in range(self.n_segments - 1):
-            obs[i, 0] = self.data.qpos[i + 3]
-            obs[i, 1] = self.data.qvel[i + 3]
-
-        return obs.flatten()
 
 
     def reset_model(self):

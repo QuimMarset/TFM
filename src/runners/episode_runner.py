@@ -30,14 +30,8 @@ class EpisodeRunner:
         # Log the first run
         self.log_train_stats_t = -1000000
 
-    def setup(self, scheme, groups, preprocess, mac):
-        # Used in the Adaptive Optics environment as reward comes with frame delay
-        if 'delayed_assignment' in self.args.env_args:
-            reward_delay = self.args.env_args['delayed_assignment'] + 2
-        else:
-            reward_delay = 1
-        
-        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + reward_delay,
+    def setup(self, scheme, groups, preprocess, mac):       
+        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
 
@@ -50,9 +44,9 @@ class EpisodeRunner:
     def close_env(self):
         self.env.close()
 
-    def reset(self):
+    def reset(self, test_mode):
         self.batch = self.new_batch()
-        self.env.reset()
+        self.env.reset(test_mode)
         self.t = 0
 
         pre_transition_data = {
@@ -64,7 +58,7 @@ class EpisodeRunner:
 
 
     def run(self, test_mode=False, **kwargs):
-        self.reset()
+        self.reset(test_mode)
 
         terminated = False
         episode_return = 0

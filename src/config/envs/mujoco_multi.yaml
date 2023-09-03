@@ -2,11 +2,13 @@ env: "mujoco_multi"
 
 env_args:
     episode_limit: 1000
-    scenario: "manyagent_swimmer"
-    agent_conf: "2x2"
+    scenario: "Ant-v4"
+    agent_conf: "4x2"
     agent_obsk: 0
-    #global_categories: "qpos,qvel"
-    render_mode: rgb_array
+    #global_categories: "qvel"
+    #healthy_reward: 0
+    #ctrl_cost_weight: 0
+    #render_mode: human
 
 save_frames: False
 

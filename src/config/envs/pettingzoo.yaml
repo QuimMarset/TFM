@@ -9,7 +9,7 @@ env_args:
     use_flag_version: True
     #render_mode: 'human'
 
-repetitions: 5
+repetitions: 1
 
 test_interval: 1000
 test_nepisode: 25
