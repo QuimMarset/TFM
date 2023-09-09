@@ -47,7 +47,7 @@ def get_episode_length_plot_y_ticks(env_name):
 
 
 def stylize_algorithm_name(algorithm_name):
-    if algorithm_name in ['qmix', 'facmac', 'maddpg', 'td3', 'ddpg', 'dqn']:
+    if algorithm_name in ['qmix', 'facmac', 'maddpg', 'td3', 'ddpg', 'dqn', 'iql', 'vdn']:
         return algorithm_name.upper()
     elif algorithm_name == 'facmac_td3':
         return 'FACMAC-TD3'

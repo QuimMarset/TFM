@@ -18,7 +18,7 @@ class EpisodesRunner:
 
         self.set_rng = True
         self.total_steps = 0
-        self.last_log_stats_step = 0
+        self.last_log_stats_step = - self.args.runner_log_interval - 1
         self.returns = []
         self.stats = {}
 
@@ -28,8 +28,13 @@ class EpisodesRunner:
         self.env_seeds = []
         
         env_args = [self.args.env_args.copy() for _ in range(self.num_envs)]
+
         for i in range(self.num_envs):
             env_args[i]["seed"] = self.args.env_args['seed'] + i
+
+            if self.is_test and env_args[i].get('scenario', '') == 'Ant-v4':
+                env_args[i]['healthy_reward'] = 1
+
             self.env_seeds.append(env_args[i]["seed"])
 
         self.envs = [env_fn(**env_args_i) for env_args_i in env_args]
@@ -173,7 +178,7 @@ class EpisodesRunner:
         self.returns.extend(episode_returns)
 
         for episode_return in episode_returns:
-            self.logger.write_episode_return(episode_return)
+            self.logger.write_episode_return(episode_return, self.is_test)
 
         if self._is_time_to_log():
             prefix = 'test_' if self.is_test else ''
@@ -195,8 +200,12 @@ class EpisodesRunner:
     
     def _is_time_to_log(self):
         n_test_runs = max(1, self.args.test_nepisode // self.num_envs) * self.num_envs
-        return (self.is_test and len(self.returns) == n_test_runs or
-                self.total_steps - self.last_log_stats_step >= self.args.runner_log_interval) 
+
+        if self.is_test and len(self.returns) == n_test_runs:
+            return True
+        elif not self.is_test and self.total_steps - self.last_log_stats_step >= self.args.runner_log_interval:
+            return True
+        return False
         
     
     def _log_returns(self, prefix):
@@ -210,7 +219,8 @@ class EpisodesRunner:
             if k != "n_episodes":
                 self.logger.log_stat(prefix + k + "_mean" , v / self.stats["n_episodes"], self.total_steps)
 
-        if hasattr(self.agent_controller, "action_selector") and hasattr(self.agent_controller.action_selector, "epsilon"):
+        if (not self.is_test and hasattr(self.agent_controller, "action_selector") 
+            and hasattr(self.agent_controller.action_selector, "epsilon")):
             self.logger.log_stat("epsilon", self.agent_controller.action_selector.epsilon, self.total_steps)
             
         self.stats.clear()

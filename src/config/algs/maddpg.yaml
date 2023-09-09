@@ -9,18 +9,18 @@ add_last_action: False
 critic_add_agent_id: False
 
 buffer_transitions: True
-num_envs: 8
+num_envs: 1
 n_batches_to_sample: 1000
 batch_size: 100
 buffer_size: 500000
-t_max: 4000000
+t_max: 1000000
 
 start_steps: 10000
 decay_type: linear
 power: 1 # only applies to polynomial decay_type
 sigma_start: 0.2
-sigma_finish: 0.05
-sigma_anneal_time: 4000000
+sigma_finish: 0.1
+sigma_anneal_time: 1000000
 
 gamma: 0.99
 
@@ -39,13 +39,14 @@ grad_norm_clip_critic: 0.5
 learner: "maddpg_learner"
 mac: "facmac_mac"
 critic_controller: "maddpg_controller"
-agent: "mlp_actor"
+agent: "shared_but_first_actor_mlp"
 critic: "centralized_mlp"
 
 hidden_dim: 64
+hidden_dim_critic: 256
 
 target_update_mode: "soft"
-target_update_tau: 0.001
+target_update_tau: 0.005
 hard_update_interval: 200
 
 save_model: False

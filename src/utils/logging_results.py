@@ -65,9 +65,10 @@ class Logger:
             file.write(string_data + '\n')
 
 
-    def write_episode_return(self, episode_return):
+    def write_episode_return(self, episode_return, is_test=False):
         with open(self.returns_path, 'a') as file:
-            file.write(f'Episode {self.episode_num} return: {episode_return:.4f}\n')
+            prefix = 'Test Episode' if is_test else 'Episode'
+            file.write(f'{prefix} {self.episode_num} return: {episode_return:.4f}\n')
         self.episode_num += 1
 
 

@@ -13,10 +13,11 @@ batch_size: 20
 buffer_size: 1000
 t_max: 100000
 
+use_epsilon_greedy: True
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
-epsilon_anneal_time: 50000
+epsilon_anneal_time: 70000
 evaluation_epsilon: 0
 
 lr: 0.001
@@ -26,8 +27,8 @@ lr_decay_critic: False
 lr_decay_gamma: 0.9
 lr_decay_episodes: 20
 
-grad_norm_clip_actor: 50
-grad_norm_clip_critic: 50
+grad_norm_clip_actor: 0.5
+grad_norm_clip_critic: 0.5
 
 use_td_lambda: True
 td_lambda: 0.8
@@ -43,6 +44,7 @@ agent: "rnn"
 critic: "centralized_mlp"
 
 hidden_dim: 64
+hidden_dim_critic: 256
 
 target_update_mode: "soft"
 target_update_tau: 0.005
@@ -53,5 +55,5 @@ save_model_interval: 50000
 
 save_model_end: True
 
-#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball/maddpg_discrete/experiment_23/run_1/models" 
-#evaluate: True
+checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/MADDPG/compare_2/experiment_60/run_5/models" 
+evaluate: True

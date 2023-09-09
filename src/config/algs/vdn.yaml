@@ -1,6 +1,6 @@
-# --- QMIX specific parameters ---
+# --- VDN specific parameters ---
 
-name: "qmix"
+name: "vdn"
 
 seed: 0
 
@@ -32,7 +32,7 @@ grad_norm_clip: 50
 mac: "basic_mac"
 agent: "rnn"
 learner: "q_learner"
-mixer: "qmix"
+mixer: "vdn"
 
 double_q: True
 

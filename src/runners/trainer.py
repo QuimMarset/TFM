@@ -17,8 +17,7 @@ class Trainer(Runner):
                                           is_test=True)
 
         self.num_episodes = 0
-        self.last_test_step = 0
-        self.last_log_train_step = 0
+        self.last_test_step = - self.args.test_interval - 1
         self.last_save_model_step = 0
         self.last_print_stats_step = 0
 
@@ -69,12 +68,13 @@ class Trainer(Runner):
 
         self.train_runner.close_envs()
         self.test_runner.close_envs()
+        self.logger.log_date_to_console()
 
 
     def _insert_batch_to_replay_buffer(self, episode_batch):
         if self.args.buffer_transitions:
             for i in range(episode_batch.batch_size):
-                for t in range(episode_batch.max_seq_length):
+                for t in range(episode_batch.max_seq_length - 1):
                     if t < episode_batch.max_seq_length - 1 and episode_batch['filled'][i, t] and not episode_batch['filled'][i, t+1]:
                         break
                     self.buffer.insert_episode_batch(episode_batch[i, t:t+2])
@@ -114,8 +114,7 @@ class Trainer(Runner):
 
 
     def _is_time_to_test(self):
-        return (self.train_runner.total_steps >= self.args.start_steps and 
-                self.train_runner.total_steps - self.last_test_step >= self.args.test_interval)
+        return self.train_runner.total_steps - self.last_test_step >= self.args.test_interval
     
 
     def _perform_test_episodes(self):

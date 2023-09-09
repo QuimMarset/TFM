@@ -28,7 +28,7 @@ target_sigma_finish: 0.2
 target_sigma_anneal_time: 1000000
 target_noise_clipping: 0.5
 
-gamma: 0.9999
+gamma: 0.99
 
 update_actor_targets_freq: 2
 
@@ -61,5 +61,5 @@ save_model_interval: 200000
 
 save_model_end: True
 
-#checkpoint_path: C:/Users/quim1/Desktop/src_refactor_last/results/Ant-v4/td3/experiment_4/run_1/models
+#checkpoint_path: D:/MAI/TFM/TFM/results/Ant-v4/td3/experiment_2/run_1/models
 #evaluate: True

@@ -9,13 +9,13 @@ class CentralizedMLPCritic(nn.Module):
         super().__init__()
         self.args = args
         self.n_agents = args.n_agents
-        self.fc1 = nn.Linear(input_shape + action_shape * self.n_agents, args.hidden_dim)
-        self.fc2 = nn.Linear(args.hidden_dim, args.hidden_dim)
-        self.fc3 = nn.Linear(args.hidden_dim, args.n_critic_net_outputs)
+        self.fc1 = nn.Linear(input_shape + action_shape * self.n_agents, args.hidden_dim_critic)
+        self.fc2 = nn.Linear(args.hidden_dim_critic, args.hidden_dim_critic)
+        self.fc3 = nn.Linear(args.hidden_dim_critic, args.n_critic_net_outputs)
 
 
     def init_hidden(self):
-        return self.fc1.weight.new(1, self.args.hidden_dim).zero_()
+        return self.fc1.weight.new(1, self.args.hidden_dim_critic).zero_()
 
 
     def forward(self, inputs, hidden_states, actions):

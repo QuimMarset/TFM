@@ -59,33 +59,17 @@ class MADDPGDiscreteController(QController):
         self.epsilon = self.schedule.eval(0)
 
     
+    def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
+        if self.args.use_epsilon_greedy:
+            return super().select_actions(ep_batch, t_ep, t_env, bs, test_mode)
+        else:
+            return self.select_actions_alt(ep_batch, t_ep, t_env, bs, test_mode)
+
+    
     def select_actions_alt(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         logits = self.forward(ep_batch, t_ep)
         chosen_actions = gumbel_softmax(logits, hard=True).argmax(dim=-1)
         return chosen_actions.unsqueeze(-1)[bs]
-
-
-    def select_actions_alt_2(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
-        logits = self.forward(ep_batch, t_ep)
-
-        if test_mode:
-            # (b, n_agents, n_discrete_actions)
-            one_hot_actions = onehot_from_logits(logits)
-            # (b, n_agents, 1)
-            actions = th.argmax(one_hot_actions, dim=-1, keepdim=True).long()
-
-        else:
-            self.epsilon = self.schedule.eval(t_env)
-
-            epsilon_action_num = th.ones_like(logits).sum(dim=-1, keepdim=True).float()
-
-            agent_outs = th.nn.functional.softmax(logits, dim=-1)
-            agent_outs = ((1 - self.epsilon) * agent_outs + th.ones_like(
-                agent_outs) * self.epsilon / epsilon_action_num)
-            
-            actions = Categorical(agent_outs).sample().long().unsqueeze(-1)
-        
-        return actions[bs]
     
 
     def select_target_actions(self, ep_batch, t_ep):
@@ -100,12 +84,4 @@ class MADDPGDiscreteController(QController):
         # (b, n_agents, n_discrete_actions)
         one_hot_actions = gumbel_softmax(logits, hard=True)
         return one_hot_actions
-
-
-    def forward(self, ep_batch, t):
-        # (b, n_agents, -1)
-        agent_inputs = self._build_inputs(ep_batch, t)
-        # (b, n_agents, n_discrete_actions), (b, n_agents, hidden_dim)
-        logits, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-        return logits
     
