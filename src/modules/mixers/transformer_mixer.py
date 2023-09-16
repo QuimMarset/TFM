@@ -64,7 +64,7 @@ class TransformerMixer(nn.Module):
         # reshape
         b, _, _ = qvals.size()
 
-        #(baatch_size, state_entities, n_tokens)
+        # (batch_size, state_entities, n_tokens)
         if self.custom_space:
             inputs = states.reshape(b, self.n_entities, self.feat_dim)
         else:

@@ -12,6 +12,8 @@ from learners.multi_agent.FACMAC.facmac_td3_learner_no_rnn import FACMACTD3Learn
 from learners.multi_agent.MADDPG.maddpg_learner import MADDPGLearner
 from learners.multi_agent.MADDPG.maddpg_discrete_learner import MADDPGDiscreteLearner
 
+from learners.multi_agent.iql_continuous_learner_no_rnn import IQLContinuousLearnerNoRNN
+
 from learners.multi_agent.TransfQMIX.transformer_learner_discrete import DiscreteTransformerLearner
 from learners.multi_agent.TransfQMIX.transformer_learner_continuous import ContinuousTransformerLearner
 
@@ -32,6 +34,8 @@ REGISTRY['facmac_td3_no_rnn_learner'] = FACMACTD3LearnerNoRNN
 
 REGISTRY["maddpg_learner"] = MADDPGLearner
 REGISTRY['maddpg_discrete_learner'] = MADDPGDiscreteLearner
+
+REGISTRY['iql_continuous_learner'] = IQLContinuousLearnerNoRNN
 
 REGISTRY['discrete_transformer_learner'] = DiscreteTransformerLearner
 REGISTRY['continuous_transformer_learner'] = ContinuousTransformerLearner

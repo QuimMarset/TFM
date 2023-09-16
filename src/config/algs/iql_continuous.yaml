@@ -1,0 +1,61 @@
+# --- IQL Continuous Actions specific parameters ---
+
+name: "iql_continuous"
+
+seed: 0
+
+add_agent_id: False
+critic_add_agent_id: False
+
+buffer_transitions: True
+num_envs: 1
+n_batches_to_sample: -1
+batch_size: 100
+buffer_size: 50000
+t_max: 100000
+
+start_steps: 1000
+decay_type: linear
+power: 1 # only applies to polynomial decay_type
+sigma_start: 0.15
+sigma_finish: 0.15
+sigma_anneal_time: 100000
+
+critic_use_previous_transitions: False
+num_previous_transitions: 0
+
+gamma: 0.99
+
+lr: 0.001
+critic_lr: 0.001
+lr_decay_actor: False
+lr_decay_critic: False
+lr_decay_gamma: 0.8
+lr_decay_episodes: 10000
+
+grad_norm_clip_actor: 50
+grad_norm_clip_critic: 50
+
+#optimizer_epsilon: 0.0001
+
+learner: "iql_continuous_learner"
+mac: "facmac_no_rnn_mac"
+critic_controller: "factorized_no_rnn_controller"
+agent: "mlp_actor"
+critic: "mlp"
+
+hidden_dim: 256
+
+target_update_mode: "soft"
+target_update_tau: 0.005
+hard_update_interval: 2000
+
+save_model: False
+save_model_interval: 500000
+
+actions_regularization: False
+
+save_model_end: True
+
+#checkpoint_path: C:/Users/quim1/Desktop/src/results/manyagent_swimmer/facmac/experiment_127/run_1/models
+#evaluate: True

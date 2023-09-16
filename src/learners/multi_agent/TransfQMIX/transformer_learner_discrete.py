@@ -31,6 +31,7 @@ class DiscreteTransformerLearner(BaseQLearner):
         
         # Set network to train mode
         self.agent.agent.train()
+        self.target_agent.agent.train()
 
         qs, hidden_states = self._compute_qs(batch)
         # (b, episode_length, n_agents)
@@ -48,7 +49,7 @@ class DiscreteTransformerLearner(BaseQLearner):
         targets = build_td_lambda_targets(rewards, terminated, mask, joined_max_target_qs, 
                                           self.args.n_agents, self.args.gamma, self.args.td_lambda)
 
-        td_error = (joined_chosen_action_qs - targets.detach())
+        td_error = joined_chosen_action_qs - targets.detach()
         masked_td_error = td_error * mask[:, :-1]
         loss = (masked_td_error ** 2).sum() / mask_elems
 

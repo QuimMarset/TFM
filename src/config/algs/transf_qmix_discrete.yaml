@@ -19,20 +19,20 @@ epsilon_anneal_time: 30000
 evaluation_epsilon: 0
 
 num_envs: 1
-buffer_size: 1000
-batch_size: 20
+buffer_size: 5000
+batch_size: 32
 t_max: 100000
 
 gamma: 0.99
 
-lr: 0.001
+lr: 0.0005
 lr_decay: False
 lr_decay_gamma: 0.5
 lr_decay_episodes: 500
 
-grad_norm_clip: 0.5
+grad_norm_clip: 50
 
-#optimizer_epsilon: 0.01
+#optimizer_epsilon: 0.0001
 
 td_lambda: 0.6
 
@@ -45,7 +45,7 @@ mixer: "transformer"
 emb_dim: 32 # embedding dimension of transformer
 num_heads: 4 # head number of transformer
 num_blocks: 2 # block number of transformer
-ff_hidden_mult: 2 # relative dimension of hidden layer of ff after attention
+ff_hidden_mult: 4 # relative dimension of hidden layer of ff after attention
 dropout: 0 # multi-head attention dropout
 
 # parameters of the transformer mixer
@@ -54,7 +54,7 @@ mixer_heads: 4 # head number of transformer
 mixer_depth: 2 # block number of transformer
 qmix_pos_func: "abs" # function to impose monotonic constraint
 
-target_update_mode: 'soft'
+target_update_mode: 'hard'
 hard_update_interval: 200
 target_update_tau: 0.005
 

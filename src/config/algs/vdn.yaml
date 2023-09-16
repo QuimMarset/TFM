@@ -10,7 +10,7 @@ add_last_action: True
 num_envs: 1
 batch_size: 20
 buffer_size: 1000
-t_max: 100000
+t_max: 50000
 
 increase_step_counter: False
 

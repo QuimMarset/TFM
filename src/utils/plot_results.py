@@ -30,7 +30,7 @@ def get_episode_return_plot_y_ticks(env_name, algorithm_name, agent_conf=None):
     elif env_name == 'manyagent_swimmer' or env_name == 'ManySegmentSwimmer':
         return get_manyagent_swimmer_return_y_ticks(algorithm_name, agent_conf)
     elif env_name == 'pistonball':
-        return range(0, 101, 20)
+        return range(-50, 120, 10)
     elif env_name == 'Ant-v4':
         return get_ant_return_y_ticks(algorithm_name, agent_conf)
     else:
@@ -55,6 +55,8 @@ def stylize_algorithm_name(algorithm_name):
         return 'MADDPG-Gumbel-Softmax'
     elif algorithm_name == 'transf_qmix_discrete':
         return 'Transf-QMIX'
+    elif algorithm_name == 'iql_continuous':
+        return 'IQL'
     else:
         raise ValueError(f'Unknown algorithm name {algorithm_name}')
     

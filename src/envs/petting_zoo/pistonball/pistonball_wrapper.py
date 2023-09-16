@@ -1,5 +1,4 @@
-from envs.petting_zoo.pistonball.pistonball_positions_global_reward_2_actions import parallel_env
-from envs.petting_zoo.pistonball.pistonball_test import parallel_env as parallel_env_2
+from envs.petting_zoo.pistonball.pistonball_env import parallel_env
 from envs.multiagentenv import MultiAgentEnv
 
 
@@ -12,16 +11,12 @@ class PistonballWrapper(MultiAgentEnv):
         episode_limit = kwargs.get('episode_limit', 125) 
         render_mode = kwargs.get('render_mode', None) 
         state_entity_mode = kwargs.get('state_entity_mode', False)
+        self.seed = kwargs.get('seed', None)
 
-        if kwargs.get('use_flag_version', False):
-            self.env = parallel_env_2(n_pistons=num_pistons, continuous=continuous, 
-                    time_penalty=time_penalty, max_cycles=episode_limit,
-                    render_mode=render_mode, state_entity_mode=state_entity_mode)
-        
-        else:
-            self.env = parallel_env(n_pistons=num_pistons, continuous=continuous, 
-                    time_penalty=time_penalty, max_cycles=episode_limit,
-                    render_mode=render_mode, state_entity_mode=state_entity_mode)
+        self.env = parallel_env(n_pistons=num_pistons, continuous=continuous, 
+                time_penalty=time_penalty, max_cycles=episode_limit,
+                render_mode=render_mode, state_entity_mode=state_entity_mode,
+                seed=self.seed)
         
         self.seed = kwargs.get('seed', None)
         self.n_agents = num_pistons
