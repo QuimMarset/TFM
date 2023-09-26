@@ -47,4 +47,4 @@ buffer_transitions: False
 
 start_steps: 0
 
-save_replay: False
+save_frames: False

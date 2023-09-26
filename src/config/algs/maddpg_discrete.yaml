@@ -16,8 +16,8 @@ t_max: 100000
 use_epsilon_greedy: True
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
-epsilon_finish: 0.05
-epsilon_anneal_time: 70000
+epsilon_finish: 0
+epsilon_anneal_time: 100000
 evaluation_epsilon: 0
 
 lr: 0.001
@@ -27,15 +27,15 @@ lr_decay_critic: False
 lr_decay_gamma: 0.9
 lr_decay_episodes: 20
 
-grad_norm_clip_actor: 0.5
-grad_norm_clip_critic: 0.5
+grad_norm_clip_actor: 50
+grad_norm_clip_critic: 50
 
 use_td_lambda: True
 td_lambda: 0.8
 
 gamma: 0.99
 
-optimizer_epsilon: 0.0001
+#optimizer_epsilon: 0.0001
 
 learner: "maddpg_discrete_learner"
 mac: "maddpg_discrete_mac"
@@ -55,5 +55,5 @@ save_model_interval: 50000
 
 save_model_end: True
 
-checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/MADDPG/compare_2/experiment_60/run_5/models" 
-evaluate: True
+#checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/MADDPG/compare_2/experiment_60/run_3/models" 
+#evaluate: True

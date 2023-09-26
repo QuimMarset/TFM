@@ -37,7 +37,7 @@ class PettingZooWrapper(MultiAgentEnv):
 
     
     def render(self):
-        self.env.render()
+        return self.env.render()
 
 
     def close(self):

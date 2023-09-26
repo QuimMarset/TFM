@@ -10,7 +10,7 @@ add_last_action: True
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
-epsilon_anneal_time: 50000
+epsilon_anneal_time: 70000
 evaluation_epsilon: 0
 
 num_envs: 1
@@ -34,7 +34,7 @@ mixer: ~
 
 double_q: True
 
-hidden_dim: 64
+hidden_dim: 256
 
 target_update_mode: 'soft'
 hard_update_interval: 200
@@ -45,5 +45,5 @@ save_model_interval: 5000
 
 save_model_end: True
 
-#checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/qmix/51/models" 
-#evaluate: True
+checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/IQL/experiment_74/run_1/models" 
+evaluate: True

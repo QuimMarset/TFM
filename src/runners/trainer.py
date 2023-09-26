@@ -36,7 +36,7 @@ class Trainer(Runner):
 
         if self.args.checkpoint_path != '':
             step_to_load = self._load_model_checkpoint()
-            self.train_runner.total_steps = step_to_load
+            #self.train_runner.total_steps = step_to_load
 
         while self.train_runner.total_steps <= self.args.t_max:
             

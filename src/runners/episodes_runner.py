@@ -1,4 +1,6 @@
 from envs import REGISTRY as env_REGISTRY
+import os
+from PIL import Image
 import numpy as np
 import torch as th
 
@@ -84,7 +86,7 @@ class EpisodesRunner:
         self.batch.update(pre_transition_data, ts=0)
 
         
-    def run_episode(self):
+    def run_episode(self, experiment_path=None, episode_num=None):
         self.reset()
         self.agent_controller.init_hidden(batch_size=self.num_envs)
 
@@ -97,8 +99,8 @@ class EpisodesRunner:
 
         while True:
 
-            # Pass the entire batch of experiences up till now to the agents
-            # Receive the actions for each agent at this timestep in a batch for each un-terminated env
+            if self._is_time_to_save_frames():
+                self._save_episode_frames(experiment_path, episode_num, self.step)
             
             actions = self.agent_controller.select_actions(self.batch, t_ep=self.step, t_env=self.total_steps, 
                                                            bs=envs_not_terminated, test_mode=self.is_test)
@@ -256,3 +258,19 @@ class EpisodesRunner:
         actions = th.cat(actions, dim=-1).detach().cpu().numpy()
         return actions
     
+
+    def _is_time_to_save_frames(self):
+        is_evaluate_time = getattr(self.args, 'evaluate', False)
+        save_frames = getattr(self.args, 'save_frames', False)
+        return is_evaluate_time and save_frames
+
+
+    def _save_episode_frames(self, experiment_path, episode_num, frame_num):
+        folder_path = os.path.join(experiment_path, 'frames', f'frames_{episode_num}')
+        os.makedirs(folder_path, exist_ok=True)
+        
+        frame = self.envs[0].render()
+        if frame is not None:
+            image = Image.fromarray(frame)
+            frame_path = os.path.join(folder_path, f'frame_{frame_num}.png')
+            image.save(frame_path)

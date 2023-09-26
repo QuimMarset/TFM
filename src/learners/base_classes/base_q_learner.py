@@ -113,6 +113,7 @@ class BaseQLearner:
 
     def save_models(self, path):
         self.agent.save_models(path)
+        self.target_agent.save_models(path, is_target=True)
         if self.mixer is not None:
             th.save(self.mixer.state_dict(), f"{path}/mixer.th")
         th.save(self.optimizer.state_dict(), f"{path}/opt.th")
@@ -121,7 +122,5 @@ class BaseQLearner:
     def load_models(self, path):
         self.agent.load_models(path)
         if not self.args.evaluate:
-            self.target_agent.load_models(path)
-            if self.mixer is not None:
-                self.mixer.load_state_dict(th.load(f"{path}/mixer.th", map_location=lambda storage, loc: storage))
-            self.optimizer.load_state_dict(th.load(f"{path}/opt.th", map_location=lambda storage, loc: storage))
+            self.target_agent.load_models(path, is_target=True)
+        #self.optimizer.load_state_dict(th.load(f"{path}/opt.th", map_location=lambda storage, loc: storage))

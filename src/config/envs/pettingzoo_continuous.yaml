@@ -7,9 +7,11 @@ env_args:
     episode_limit: 125
     time_penalty: -0.25
     use_flag_version: True
-    #render_mode: 'human'
+    render_mode: 'rgb_array'
 
-repetitions: 5
+repetitions: 1
+
+save_frames: True
 
 test_interval: 1000
 test_nepisode: 25

@@ -7,15 +7,14 @@ env_args:
     agent_obsk: 0
     global_categories: "qvel"
     #healthy_reward: 0
-    #ctrl_cost_weight: 0.01
-    #render_mode: human
+    render_mode: human
 
 save_frames: False
 
 repetitions: 1
 
-test_interval: 20000
-test_nepisode: 30
+test_interval: 100000
+test_nepisode: 20
 log_interval: 5000
 runner_log_interval: 5000
 learner_log_interval: 5000

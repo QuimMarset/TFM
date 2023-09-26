@@ -2,7 +2,7 @@
 
 name: "transf_qmix_discrete"
 
-seed: 0
+#seed: 0
 
 # To keep the token dimension fixed, observaion id and last action should not be included
 add_agent_id: False
@@ -15,12 +15,12 @@ env_args:
 action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
-epsilon_anneal_time: 30000
+epsilon_anneal_time: 50000
 evaluation_epsilon: 0
 
 num_envs: 1
-buffer_size: 5000
-batch_size: 32
+buffer_size: 3000
+batch_size: 20
 t_max: 100000
 
 gamma: 0.99
@@ -30,7 +30,7 @@ lr_decay: False
 lr_decay_gamma: 0.5
 lr_decay_episodes: 500
 
-grad_norm_clip: 50
+grad_norm_clip: 500
 
 #optimizer_epsilon: 0.0001
 
@@ -54,7 +54,7 @@ mixer_heads: 4 # head number of transformer
 mixer_depth: 2 # block number of transformer
 qmix_pos_func: "abs" # function to impose monotonic constraint
 
-target_update_mode: 'hard'
+target_update_mode: 'soft'
 hard_update_interval: 200
 target_update_tau: 0.005
 

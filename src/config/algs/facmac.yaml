@@ -8,7 +8,7 @@ add_agent_id: False
 critic_add_agent_id: False
 
 buffer_transitions: True
-num_envs: 8
+num_envs: 1
 n_batches_to_sample: 1000
 batch_size: 100
 buffer_size: 1000
@@ -43,7 +43,7 @@ grad_norm_clip_critic: 0.5
 learner: "facmac_no_rnn_learner"
 mac: "facmac_no_rnn_mac"
 critic_controller: "factorized_no_rnn_controller"
-agent: "mlp_actor"
+agent: "shared_but_first_actor_mlp"
 critic: "mlp"
 mixer: "qmix"
 
@@ -64,5 +64,5 @@ actions_regularization: False
 
 save_model_end: True
 
-#checkpoint_path: C:/Users/quim1/Desktop/src/results/manyagent_swimmer/facmac/experiment_127/run_1/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/FACMAC/compare_20/experiment_89/run_2/models
+evaluate: True

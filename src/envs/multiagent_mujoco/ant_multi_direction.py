@@ -1,5 +1,6 @@
 import gym
 from gym.spaces import Box
+import mujoco
 import numpy as np
 from envs.multiagentenv import MultiAgentEnv
 from envs.multiagent_mujoco.obsk import get_joints_at_kdist, get_parts_and_edges, build_obs
@@ -16,8 +17,8 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
         self.global_categories = self._get_global_categories(global_categories)
         self.seed = seed
         self.episode_limit = episode_limit
-        self.direction_as_one_hot = kwargs.get('direction_one_hot', False)
         self.use_contact_forces = kwargs.get('use_contact_forces', False)
+        self.num_resets = 0
 
         self.agent_partitions, self.mujoco_edges, self.mujoco_globals = get_parts_and_edges(self.scenario,
                                                                                              self.agent_conf)
@@ -141,16 +142,12 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
     
 
     def _select_random_direction(self):
-        self.direction_index = np.random.randint(0, self.n_agents)
-        if self.direction_as_one_hot:
-            one_hot = np.zeros(self.n_agents)
-            one_hot[self.direction_index] = 1
-            return one_hot
-        return [self.direction_index]
+        self.random_direction = self.num_resets % 2
+        self.num_resets += 1
     
 
     def _change_legs_order_two_agents(self):
-        if self.direction_index == 0:
+        if self.random_direction == 0:
             # left
             agent_partitions = [
                 (self.parts['hip_4'], self.parts['ankle_4'], self.parts['hip_3'], self.parts['ankle_3']),
@@ -159,6 +156,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
         else:
             # right
             agent_partitions = self.original_agent_partitions
+
         return agent_partitions
 
 
@@ -167,7 +165,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
             self.agent_partitions = self._change_legs_order_two_agents()
         else:
             raise NotImplemented('Pending to implement the leg order change for 4 agents')
-        
+
         self.k_dicts = [get_joints_at_kdist(self.agent_partitions[agent_id], self.mujoco_edges, k=self.agent_obsk) 
                         for agent_id in range(self.n_agents)]
         
@@ -183,12 +181,25 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
     def get_obs_agent(self, agent_id):
         obs = build_obs(self.env.data, self.k_dicts[agent_id], self.k_categories, 
                          self.mujoco_globals, self.global_categories)
-        return np.concatenate([obs, self.random_direction])
+
+        if self.random_direction == 0:
+            obs[8:10] *= -1
+            obs[11:13] *= -1
+        
+        return np.concatenate([obs, [self.random_direction]])
 
 
     def get_obs_shape(self):
         return max([len(self.get_obs_agent(agent_id)) for agent_id in range(self.n_agents)])
+    
 
+    def rotate_quaternion_180_z(self, original_quaternion):
+        rot_quat = np.zeros(4)
+        mujoco.mju_axisAngle2Quat(rot_quat, np.array([0, 0, 1]), np.deg2rad(180))
+        new_quat = np.zeros(4)
+        mujoco.mju_mulQuat(new_quat, original_quaternion, rot_quat)
+        return new_quat
+        
 
     def get_state(self):
         agents_data = []
@@ -205,7 +216,14 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
                 continue
             torso_data.extend(torso.extra_obs[field_name](self.env.data).tolist())
 
-        state = np.concatenate([agents_data, torso_data, self.random_direction])
+        torso_data = np.array(torso_data)
+
+        if self.random_direction == 0:
+            torso_data[1:5] = self.rotate_quaternion_180_z(torso_data[1:5])
+            torso_data[5:7] *= -1
+            torso_data[8:10] *= -1
+
+        state = np.concatenate([agents_data, torso_data, [self.random_direction]])
         return state
 
 
@@ -219,7 +237,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
 
     def reset(self, seed=None):
         self.steps = 0
-        self.random_direction = self._select_random_direction()
+        self._select_random_direction()
         self._change_legs_order()
         self.env.reset(seed=seed)
         return self.get_obs()

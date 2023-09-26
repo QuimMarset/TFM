@@ -12,7 +12,7 @@ class Evaluator(Runner):
         super().__init__(config, logger, save_path)
         self.test_episodes = self.args.test_nepisode
         self.runner = EpisodesRunner(self.args, logger, self.agent_controller, 
-                                              self.episode_batch_function, is_test=True)  
+                                     self.episode_batch_function, is_test=True)  
 
 
     def run(self):
@@ -23,7 +23,7 @@ class Evaluator(Runner):
             self.runner.total_steps = step_to_load
 
         for i in range(self.test_episodes):
-            self.runner.run_episode()
+            self.runner.run_episode(self.save_path, i)
 
         self.logger.log_stat("episode", self.runner.total_steps, self.args.test_nepisode)
         self.logger.print_recent_stats()

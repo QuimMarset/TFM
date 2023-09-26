@@ -41,10 +41,10 @@ grad_norm_clip_critic: 50
 learner: "iql_continuous_learner"
 mac: "facmac_no_rnn_mac"
 critic_controller: "factorized_no_rnn_controller"
-agent: "mlp_actor"
+agent: "shared_but_first_actor_mlp"
 critic: "mlp"
 
-hidden_dim: 256
+hidden_dim: 64
 
 target_update_mode: "soft"
 target_update_tau: 0.005
@@ -57,5 +57,5 @@ actions_regularization: False
 
 save_model_end: True
 
-#checkpoint_path: C:/Users/quim1/Desktop/src/results/manyagent_swimmer/facmac/experiment_127/run_1/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/IQL/compare_2/experiment_57/run_3/models
+evaluate: True

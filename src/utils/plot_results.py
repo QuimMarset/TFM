@@ -52,11 +52,11 @@ def stylize_algorithm_name(algorithm_name):
     elif algorithm_name == 'facmac_td3':
         return 'FACMAC-TD3'
     elif algorithm_name == 'maddpg_discrete':
-        return 'MADDPG-Gumbel-Softmax'
+        return 'MADDPG (Gumbel-Softmax)'
     elif algorithm_name == 'transf_qmix_discrete':
         return 'Transf-QMIX'
     elif algorithm_name == 'iql_continuous':
-        return 'IQL'
+        return 'IQL (Continuous)'
     else:
         raise ValueError(f'Unknown algorithm name {algorithm_name}')
     
