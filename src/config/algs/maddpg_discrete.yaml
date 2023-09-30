@@ -38,8 +38,8 @@ gamma: 0.99
 #optimizer_epsilon: 0.0001
 
 learner: "maddpg_discrete_learner"
-mac: "maddpg_discrete_mac"
-critic_controller: "maddpg_discrete_controller"
+controller: "maddpg_discrete_controller"
+critic_controller: "maddpg_discrete_critic_controller"
 agent: "rnn"
 critic: "centralized_mlp"
 

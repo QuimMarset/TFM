@@ -37,7 +37,7 @@ grad_norm_clip_critic: 50
 td_lambda: 0.8
 
 learner: "continuous_transformer_learner"
-mac: "transformer_continuous_mac"
+controller: "transformer_continuous_controller"
 agent: "transformer_actor"
 mixer: "transformer_continuous"
 

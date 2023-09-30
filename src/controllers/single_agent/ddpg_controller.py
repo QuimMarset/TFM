@@ -1,4 +1,4 @@
-from controllers.base_controller import BaseController
+from controllers.base_classes.base_controller import BaseController
 from components.action_noising import GaussianNoise, ActionClamper, ActionSampler
 
 
@@ -32,10 +32,8 @@ class DDPGController(BaseController):
     def select_actions_train(self, ep_batch, t_ep):
         # (b, n_agents, action_shape)
         actions = self.forward(ep_batch, t_ep)
-        if self.args.env != 'adaptive_optics':
-            # (b, 1, action_shape * n_agents)
-            return actions.view(ep_batch.batch_size, 1, self.n_agents * self.action_shape)
-        return actions
+        # (b, 1, action_shape * n_agents)
+        return actions.view(ep_batch.batch_size, 1, self.n_agents * self.action_shape)
 
 
     def forward(self, ep_batch, t):
@@ -44,9 +42,7 @@ class DDPGController(BaseController):
         # (b, 1, action_shape * n_agents), (b, 1, hidden_dim)
         actions, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
         # (b, n_agents, action_shape)
-        if self.args.env != 'adaptive_optics':
-            return actions.view(ep_batch.batch_size, self.n_agents, self.action_shape)
-        return actions
+        return actions.view(ep_batch.batch_size, self.n_agents, self.action_shape)
 
 
     def _build_inputs(self, batch, t):

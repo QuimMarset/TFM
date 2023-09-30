@@ -27,9 +27,6 @@ class TD3Controller(DDPGController):
         noise = self.target_action_noising.generate_noise(actions, t_env)
         noise = self.noise_clamper.clamp_noise(noise)
         actions = self.action_clamper.clamp_actions(actions + noise)
+        # (b, 1, action_shape * n_agents)
+        return actions.view(ep_batch.batch_size, 1, self.n_agents * self.action_shape)
         
-        if self.args.env != 'adaptive_optics':
-            # (b, 1, action_shape * n_agents)
-            return actions.view(ep_batch.batch_size, 1, self.n_agents * self.action_shape)
-        
-        return actions

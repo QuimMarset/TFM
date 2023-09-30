@@ -28,8 +28,6 @@ target_sigma_finish: 0.05
 target_sigma_anneal_time: 1000000
 target_noise_clipping: 0.5
 
-use_min_to_update_actor: False
-
 gamma: 0.9999
 
 update_actor_targets_freq: 2
@@ -47,8 +45,8 @@ grad_norm_clip_critic: 0.5
 #optimizer_epsilon: 0.01
 
 learner: "td3_learner"
-mac: "td3_mac"
-critic_controller: "td3_controller"
+controller: "td3_controller"
+critic_controller: "td3_critic_controller"
 agent: "mlp_actor"
 critic: "double_critic"
 
@@ -63,5 +61,5 @@ save_model_interval: 200000
 
 save_model_end: True
 
-checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/TD3/compare_2/experiment_40/run_4/models
-evaluate: True
+#checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/experiment_86/run_2/models
+#evaluate: True

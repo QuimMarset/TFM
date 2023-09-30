@@ -30,7 +30,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
 
         self.actions_per_agent = [len(agent_partition) for agent_partition in self.agent_partitions]
 
-        self._create_ant_env_env(**kwargs)
+        self._create_ant_env(**kwargs)
         self.reset()
         self._create_agents_observation_spaces()
         self._create_agents_action_spaces()
@@ -93,7 +93,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
         return custom_args
     
 
-    def _create_ant_env_env(self, **kwargs):
+    def _create_ant_env(self, **kwargs):
         custom_args = self._create_env_custom_args(**kwargs)
         self.env = gym.make(self.scenario, **custom_args)
         self.unwrapped_env = self.env.unwrapped
@@ -116,7 +116,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
             for a in range(self.n_agents)])
         
 
-    def step(self, actions):
+    def step(self, actions, is_test=False):
         # we need to map actions back into MuJoCo action space
         num_actions = sum([action_space.low.shape[0] for action_space in self.action_spaces])
         env_actions = np.zeros(num_actions)
@@ -125,9 +125,11 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
             for i, body_part in enumerate(partition):
                 env_actions[body_part.act_ids] = actions[a][i]
 
-
         _, reward_n, done_n, truncated_n, info_n = self.env.step(env_actions)
         self.steps += 1
+
+        if is_test and self.random_direction == 0:
+            reward_n *= -1
 
         info = {}
         info.update(info_n)
@@ -146,43 +148,51 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
         self.num_resets += 1
     
 
-    def _change_legs_order_two_agents(self):
+    def _change_legs_order_two_agents(self, is_test=False):
+        if is_test:
+            return [
+                (self.parts['hip_1'], self.parts['ankle_1'], self.parts['hip_2'], self.parts['ankle_2']),
+                (self.parts['hip_4'], self.parts['ankle_4'], self.parts['hip_3'], self.parts['ankle_3'])
+            ]
+
         if self.random_direction == 0:
             # left
             agent_partitions = [
-                (self.parts['hip_4'], self.parts['ankle_4'], self.parts['hip_3'], self.parts['ankle_3']),
-                (self.parts['hip_1'], self.parts['ankle_1'], self.parts['hip_2'], self.parts['ankle_2'])
+                (self.parts['hip_3'], self.parts['ankle_3'], self.parts['hip_4'], self.parts['ankle_4']),
+                (self.parts['hip_2'], self.parts['ankle_2'], self.parts['hip_1'], self.parts['ankle_1'])
             ]
         else:
             # right
-            agent_partitions = self.original_agent_partitions
-
+            agent_partitions = [
+                (self.parts['hip_1'], self.parts['ankle_1'], self.parts['hip_2'], self.parts['ankle_2']),
+                (self.parts['hip_4'], self.parts['ankle_4'], self.parts['hip_3'], self.parts['ankle_3'])
+            ]
         return agent_partitions
+    
 
-
-    def _change_legs_order(self):
+    def _change_legs_order(self, is_test=False):
         if self.n_agents == 2:
-            self.agent_partitions = self._change_legs_order_two_agents()
+            self.agent_partitions = self._change_legs_order_two_agents(is_test)
         else:
             raise NotImplemented('Pending to implement the leg order change for 4 agents')
-
+        
         self.k_dicts = [get_joints_at_kdist(self.agent_partitions[agent_id], self.mujoco_edges, k=self.agent_obsk) 
                         for agent_id in range(self.n_agents)]
         
     
-    def get_obs(self):
+    def get_obs(self, is_test=False):
         obs_n = []
         for a in range(self.n_agents):
-            obs_i = self.get_obs_agent(a)
+            obs_i = self.get_obs_agent(a, is_test)
             obs_n.append(obs_i)
         return obs_n
 
 
-    def get_obs_agent(self, agent_id):
+    def get_obs_agent(self, agent_id, is_test=False):
         obs = build_obs(self.env.data, self.k_dicts[agent_id], self.k_categories, 
                          self.mujoco_globals, self.global_categories)
 
-        if self.random_direction == 0:
+        if self.random_direction == 0 and not is_test:
             obs[8:10] *= -1
             obs[11:13] *= -1
         
@@ -201,7 +211,7 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
         return new_quat
         
 
-    def get_state(self):
+    def get_state(self, is_test=False):
         agents_data = []
         for agent_dict in self.k_dicts:
             for agent_part in agent_dict[0]:
@@ -218,10 +228,11 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
 
         torso_data = np.array(torso_data)
 
-        if self.random_direction == 0:
+        if self.random_direction == 0 and not is_test:
             torso_data[1:5] = self.rotate_quaternion_180_z(torso_data[1:5])
             torso_data[5:7] *= -1
             torso_data[8:10] *= -1
+            pass
 
         state = np.concatenate([agents_data, torso_data, [self.random_direction]])
         return state
@@ -235,12 +246,12 @@ class AntMultiDirectionMultiAgentEnv(MultiAgentEnv):
         return {}
 
 
-    def reset(self, seed=None):
+    def reset(self, is_test=False, seed=None):
         self.steps = 0
         self._select_random_direction()
-        self._change_legs_order()
+        self._change_legs_order(is_test)
         self.env.reset(seed=seed)
-        return self.get_obs()
+        return self.get_obs(is_test)
 
 
     def render(self):

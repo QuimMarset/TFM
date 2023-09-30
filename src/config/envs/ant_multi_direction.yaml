@@ -3,18 +3,18 @@ env: "ant_multi_direction"
 env_args:
     episode_limit: 1000
     scenario: "Ant-v4"
-    agent_conf: "2x4"
+    agent_conf: "2x4" # Look at obsk file inside envs/mujoco_multi to know more configurations
     agent_obsk: 0
-    global_categories: "qvel"
-    #healthy_reward: 0
-    render_mode: human
+    global_categories: "qvel" # We always receive the linear and angular velocity from the torso
+    #healthy_reward: 0 # We do not consider the term in the reward that gives score for being alive
+    #render_mode: human
 
 save_frames: False
 
 repetitions: 1
 
 test_interval: 100000
-test_nepisode: 20
+test_nepisode: 1
 log_interval: 5000
 runner_log_interval: 5000
 learner_log_interval: 5000

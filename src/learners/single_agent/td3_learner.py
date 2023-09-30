@@ -33,11 +33,7 @@ class TD3Learner(DDPGLearner):
         
         actions = self.actor.select_actions_train(batch, 0)
 
-        if self.args.use_min_to_update_actor:
-            qs_1, qs_2 = self.critic.forward(batch, 0, actions)
-            qs = th.min(qs_1, qs_2)
-        else:
-            qs = self.critic.forward_first(batch, 0, actions)
+        qs = self.critic.forward_first(batch, 0, actions)
 
         loss = - (qs * mask).sum() / mask_elems
 
@@ -63,8 +59,7 @@ class TD3Learner(DDPGLearner):
         target_1_qs, target_2_qs = self.target_critic.forward(batch, 1, target_actions.detach())
 
         actions = batch["actions"][:, 0]
-        if self.args.env != 'adaptive_optics':
-            actions = actions.view(batch.batch_size, 1, self.action_shape * self.n_agents)
+        actions = actions.view(batch.batch_size, 1, self.action_shape * self.n_agents)
         
         qs_1, qs_2 = self.critic.forward(batch, 0, actions.detach())
         

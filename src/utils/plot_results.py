@@ -47,10 +47,8 @@ def get_episode_length_plot_y_ticks(env_name):
 
 
 def stylize_algorithm_name(algorithm_name):
-    if algorithm_name in ['qmix', 'facmac', 'maddpg', 'td3', 'ddpg', 'dqn', 'iql', 'vdn']:
+    if algorithm_name in ['qmix', 'facmac', 'maddpg', 'td3', 'ddpg', 'dqn', 'iql', 'vdn', 'jad3']:
         return algorithm_name.upper()
-    elif algorithm_name == 'facmac_td3':
-        return 'FACMAC-TD3'
     elif algorithm_name == 'maddpg_discrete':
         return 'MADDPG (Gumbel-Softmax)'
     elif algorithm_name == 'transf_qmix_discrete':

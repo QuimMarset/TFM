@@ -1,8 +1,8 @@
-from controllers.multi_agent.FACMAC.facmac_controller import FACMACAgentController
+from controllers.base_classes.base_multi_agent_continuous_controller import BaseMultiAgentContinuousController
 
 
 
-class TransformerContinuousController(FACMACAgentController):
+class TransformerContinuousController(BaseMultiAgentContinuousController):
 
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):

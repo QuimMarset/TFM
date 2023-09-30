@@ -31,7 +31,7 @@ double_q: True
 optimizer_epsilon: 0.0001
 
 learner: "dqn_learner"
-mac: "dqn_mac"
+controller: "dqn_controller"
 agent: "mlp"
 
 hidden_dim: 256
@@ -48,5 +48,5 @@ save_model_end: True
 standardize_returns: True
 standardize_rewards: True
 
-checkpoint_path: D:/MAI/TFM/Resultats/pistonball_discrete/DQN/compare_2/experiment_71/run_2/models
-evaluate: True
+#checkpoint_path: D:/MAI/TFM/Resultats/pistonball_discrete/DQN/compare_2/experiment_71/run_2/models
+#evaluate: True

@@ -24,7 +24,7 @@ lr: 0.001
 grad_norm_clip: 50
 
 learner: "continuous_q_learner"
-mac: "comix_mac"
+controller: "comix_controller"
 agent: "rnn"
 mixer: "qmix"
 

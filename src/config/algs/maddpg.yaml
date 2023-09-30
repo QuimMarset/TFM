@@ -5,7 +5,6 @@ name: "maddpg"
 seed: 0
 
 add_agent_id: False
-add_last_action: False
 critic_add_agent_id: False
 
 buffer_transitions: True
@@ -22,6 +21,9 @@ sigma_start: 0.1
 sigma_finish: 0.1
 sigma_anneal_time: 100000
 
+critic_use_previous_transitions: False
+num_previous_transitions: 0
+
 gamma: 0.99
 
 lr: 0.001
@@ -37,8 +39,8 @@ grad_norm_clip_critic: 500
 #optimizer_epsilon: 0.01
 
 learner: "maddpg_learner"
-mac: "facmac_mac"
-critic_controller: "maddpg_controller"
+controller: "facmac_controller"
+critic_controller: "maddpg_critic_controller"
 agent: "mlp_actor"
 critic: "centralized_mlp"
 
@@ -56,5 +58,5 @@ actions_regularization: False
 
 save_model_end: True
 
-checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/MADDPG/compare_3/experiment_94/run_2/models
-evaluate: True
+#checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/MADDPG/compare_3/experiment_94/run_2/models
+#evaluate: True

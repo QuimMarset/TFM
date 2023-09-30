@@ -25,7 +25,7 @@ class BaseActorCriticLearner:
 
 
     def create_actors(self, scheme, args):
-        self.actor = actor_REGISTRY[args.mac](scheme, args)
+        self.actor = actor_REGISTRY[args.controller](scheme, args)
         self.target_actor = copy.deepcopy(self.actor)
         self.actor_params = list(self.actor.parameters())
 
@@ -153,7 +153,9 @@ class BaseActorCriticLearner:
 
     def save_models(self, path):
         self.actor.save_models(path)
+        self.target_actor.save_models(path, is_target=True)
         self.critic.save_models(path)
+        self.target_critic.save_models(path, is_target=True)
         if self.mixer is not None:
             th.save(self.mixer.state_dict(), f"{path}/mixer.th")
         th.save(self.actor_optimiser.state_dict(), f"{path}/actor_opt.th")
@@ -164,8 +166,12 @@ class BaseActorCriticLearner:
         self.actor.load_models(path)
 
         if not self.args.evaluate:
+            self.target_actor.load_models(path, is_target=False)
             self.critic.load_models(path)
-            if self.mixer is not None:
-                self.mixer.load_state_dict(th.load(f"{path}/mixer.th", map_location=lambda storage, loc: storage))
-            self.actor_optimiser.load_state_dict(th.load(f"{path}/actor_opt.th", map_location=lambda storage, loc: storage))
-            self.critic_optimiser.load_state_dict(th.load(f"{path}/critic_opt.th", map_location=lambda storage, loc: storage))
+            self.target_critic.load_models(path, is_target=False)
+
+            #if self.mixer is not None:
+            #    self.mixer.load_state_dict(th.load(f"{path}/mixer.th", map_location=lambda storage, loc: storage))
+            
+            #self.actor_optimiser.load_state_dict(th.load(f"{path}/actor_opt.th", map_location=lambda storage, loc: storage))
+            #self.critic_optimiser.load_state_dict(th.load(f"{path}/critic_opt.th", map_location=lambda storage, loc: storage))

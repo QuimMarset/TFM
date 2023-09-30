@@ -5,11 +5,9 @@ from controllers.single_agent.td3_controller import TD3Controller
 from controllers.multi_agent.QMIX.q_controller import QController
 from controllers.multi_agent.QMIX.continuous_q_controller import ContinuousQController
 
-from controllers.multi_agent.MADDPG.maddpg_discrete_controller import MADDPGDiscreteController
-
-from controllers.multi_agent.FACMAC.facmac_controller import FACMACAgentController
-from controllers.multi_agent.FACMAC.facmac_controller_no_rnn import FACMACAgentControllerNoRNN
-from controllers.multi_agent.FACMAC.facmac_td3_controller_no_rnn import FACMACTD3AgentControllerNoRNN
+from controllers.multi_agent.Others.maddpg_discrete_controller import MADDPGDiscreteController
+from controllers.multi_agent.Others.facmac_controller import FACMACAgentController
+from controllers.multi_agent.Others.jad3_controller import JAD3Controller
 
 from controllers.multi_agent.TransfQMIX.transformer_controller import TransformerController
 from controllers.multi_agent.TransfQMIX.transformer_controller_continuous import TransformerContinuousController
@@ -18,18 +16,18 @@ from controllers.multi_agent.TransfQMIX.transformer_controller_continuous import
 
 REGISTRY = {}
 
-REGISTRY['dqn_mac'] = DQNController
-REGISTRY['ddpg_mac'] = DDPGController
-REGISTRY['td3_mac'] = TD3Controller
+REGISTRY['dqn_controller'] = DQNController
+REGISTRY['ddpg_controller'] = DDPGController
+REGISTRY['td3_controller'] = TD3Controller
 
-REGISTRY["basic_mac"] = QController
-REGISTRY['comix_mac'] = ContinuousQController
+REGISTRY["basic_controller"] = QController
+REGISTRY['comix_controller'] = ContinuousQController
 
-REGISTRY['maddpg_discrete_mac'] = MADDPGDiscreteController
+REGISTRY['maddpg_discrete_controller'] = MADDPGDiscreteController
 
-REGISTRY['facmac_mac'] = FACMACAgentController
-REGISTRY['facmac_no_rnn_mac'] = FACMACAgentControllerNoRNN
-REGISTRY['facmac_td3_no_rnn_mac'] = FACMACTD3AgentControllerNoRNN
+REGISTRY['facmac_controller'] = FACMACAgentController
 
-REGISTRY['transformer_continuous_mac'] = TransformerContinuousController
-REGISTRY['transformer_mac'] = TransformerController
+REGISTRY['jad3_controller'] = JAD3Controller
+
+REGISTRY['transformer_continuous_controller'] = TransformerContinuousController
+REGISTRY['transformer_controller'] = TransformerController

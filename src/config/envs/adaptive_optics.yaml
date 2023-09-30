@@ -1,4 +1,6 @@
-env:  "adaptive_optics"
+env:  "adaptive_optics" 
+
+# DOES NOT WORK
 
 env_args: 
     parameter_file: sh_10x10_2m

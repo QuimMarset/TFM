@@ -33,8 +33,8 @@ grad_norm_clip_critic: 0.5
 #optimizer_epsilon: 0.01
 
 learner: "ddpg_learner"
-mac: "ddpg_mac"
-critic_controller: "ddpg_controller"
+controller: "ddpg_controller"
+critic_controller: "ddpg_critic_controller"
 agent: "mlp_actor"
 critic: "mlp"
 mixer: "qmix"
@@ -50,6 +50,5 @@ save_model_interval: 50000
 
 save_model_end: True
 
-#load_step: 561000
 #checkpoint_path: "D:/MAI/TFM/TFM/results/pistonball_reward_2_actions/facmac_pettingzoo/196/models" 
 #evaluate: True # Evaluate model for test_nepisode episodes and quit (no training)

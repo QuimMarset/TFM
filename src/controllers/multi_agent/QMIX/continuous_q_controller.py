@@ -1,11 +1,12 @@
 import torch as th
 import torch.distributions as tdist
-from controllers.multi_agent.FACMAC.facmac_controller import FACMACAgentController
+from controllers.base_classes.base_multi_agent_continuous_controller import BaseMultiAgentContinuousController
 
 
 
-class ContinuousQController(FACMACAgentController):
+class ContinuousQController(BaseMultiAgentContinuousController):
 
+    # Used for COMIX and COVDN
 
     def _get_input_shape(self, scheme):
         return super()._get_input_shape(scheme) + self.args.action_shape

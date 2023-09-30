@@ -1,6 +1,6 @@
 import torch as th
 from components.action_selectors import REGISTRY as action_selector_registry
-from controllers.base_controller import BaseController
+from controllers.base_classes.base_controller import BaseController
 
 
 

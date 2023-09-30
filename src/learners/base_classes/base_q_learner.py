@@ -22,7 +22,7 @@ class BaseQLearner:
 
 
     def _create_agents(self, scheme, args):
-        self.agent = agent_registry[args.mac](scheme, args)
+        self.agent = agent_registry[args.controller](scheme, args)
         self.target_agent = copy.deepcopy(self.agent)
         self.agent_params = list(self.agent.parameters())
 

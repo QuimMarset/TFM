@@ -1,20 +1,20 @@
-from critic_controllers.single_agent.ddpg_controller import DDPGController
-from critic_controllers.single_agent.td3_controller import TD3Controller
+from critic_controllers.single_agent.ddpg_critic_controller import DDPGCriticController
+from critic_controllers.single_agent.td3_critic_controller import TD3CriticController
 
-from critic_controllers.multi_agent.factorized_controller import FactorizedCriticController
-from critic_controllers.multi_agent.maddpg_controller import MADDPGCriticController
-from critic_controllers.multi_agent.maddpg_discrete_controller import MADDPGDiscreteCriticController
-from critic_controllers.multi_agent.factorized_controller_no_rnn import FactorizedCriticControllerNoRNN
-from critic_controllers.multi_agent.factorized_td3_controller_no_rnn import FactorizedTD3CriticControllerNoRNN
+from critic_controllers.multi_agent.maddpg_critic_controller import MADDPGCriticController
+from critic_controllers.multi_agent.maddpg_discrete_critic_controller import MADDPGDiscreteCriticController
+from critic_controllers.multi_agent.factorized_critic_controller import FactorizedCriticController
+from critic_controllers.multi_agent.jad3_critic_controller import JAD3CriticController
 
 
 
 REGISTRY = {}
 
-REGISTRY['factorized_controller'] = FactorizedCriticController
-REGISTRY['maddpg_controller'] = MADDPGCriticController
-REGISTRY['maddpg_discrete_controller'] = MADDPGDiscreteCriticController
-REGISTRY['ddpg_controller'] = DDPGController
-REGISTRY['td3_controller'] = TD3Controller
-REGISTRY['factorized_no_rnn_controller'] = FactorizedCriticControllerNoRNN
-REGISTRY['factorized_td3_no_rnn_controller'] = FactorizedTD3CriticControllerNoRNN
+REGISTRY['maddpg_critic_controller'] = MADDPGCriticController
+REGISTRY['maddpg_discrete_critic_controller'] = MADDPGDiscreteCriticController
+
+REGISTRY['ddpg_critic_controller'] = DDPGCriticController
+REGISTRY['td3_critic_controller'] = TD3CriticController
+
+REGISTRY['factorized_critic_controller'] = FactorizedCriticController
+REGISTRY['jad3_critic_controller'] = JAD3CriticController

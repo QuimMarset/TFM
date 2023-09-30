@@ -59,6 +59,8 @@ class EpisodesRunner:
             "obs": []
         }
 
+        is_ant_env = self.args.env == 'ant_multi_direction'
+
         for i, env in enumerate(self.envs):
 
             """ 
@@ -77,9 +79,18 @@ class EpisodesRunner:
             else:
                 seed = None
 
-            env.reset(seed)
-            pre_transition_data["state"].append(env.get_state())
-            pre_transition_data["obs"].append(env.get_obs())
+            if is_ant_env:
+                # We need to know if we are testing, because we need to change how the Ant moves
+                env.reset(self.is_test, seed)
+                state = env.get_state(self.is_test)
+                obs = env.get_obs(self.is_test)
+            else:
+                env.reset(seed)
+                state = env.get_state()
+                obs = env.get_obs()
+
+            pre_transition_data["state"].append(state)
+            pre_transition_data["obs"].append(obs)
 
         self.set_rng = False
 
@@ -89,6 +100,8 @@ class EpisodesRunner:
     def run_episode(self, experiment_path=None, episode_num=None):
         self.reset()
         self.agent_controller.init_hidden(batch_size=self.num_envs)
+
+        is_ant_env = self.args.env == 'ant_multi_direction'
 
         all_terminated = False
         episode_returns = [0 for _ in range(self.num_envs)]
@@ -137,7 +150,10 @@ class EpisodesRunner:
             for idx, env in enumerate(self.envs):
                 if idx in envs_not_terminated:
                     
-                    reward, done, truncated, env_info = env.step(cpu_actions[action_idx])
+                    if is_ant_env:
+                        reward, done, truncated, env_info = env.step(cpu_actions[action_idx], self.is_test)
+                    else:
+                        reward, done, truncated, env_info = env.step(cpu_actions[action_idx])
 
                     post_transition_data["reward"].append((reward,))
 
@@ -158,9 +174,16 @@ class EpisodesRunner:
                         post_transition_data['prev_obs'].append(self._build_prev_obs(idx, self.step))
                         post_transition_data['prev_actions'].append(self._build_prev_actions(idx, self.step))
 
+                    if is_ant_env:
+                        state = env.get_state(self.is_test)
+                        obs = env.get_obs(self.is_test)
+                    else:
+                        state = env.get_state()
+                        obs = env.get_obs()
+
                     # Data for the next timestep needed to select an action
-                    pre_transition_data["state"].append(env.get_state())
-                    pre_transition_data["obs"].append(env.get_obs())
+                    pre_transition_data["state"].append(state)
+                    pre_transition_data["obs"].append(obs)
 
                     action_idx += 1
 
@@ -269,6 +292,9 @@ class EpisodesRunner:
         folder_path = os.path.join(experiment_path, 'frames', f'frames_{episode_num}')
         os.makedirs(folder_path, exist_ok=True)
         
+        if episode_num > 0:
+            return
+
         frame = self.envs[0].render()
         if frame is not None:
             image = Image.fromarray(frame)

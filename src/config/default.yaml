@@ -1,13 +1,9 @@
 # --- Defaults ---
 
-buffer_cpu_only: True
-
-runner: "episode"
 num_envs: 1
 
 test_nepisode: 20
 test_interval: 2000
-test_greedy: True
 
 log_interval: 2000
 
@@ -48,3 +44,13 @@ buffer_transitions: False
 start_steps: 0
 
 save_frames: False
+
+increase_step_counter: False
+use_training_steps_to_compute_target_noise: False
+
+critic_use_previous_transitions: False
+num_previous_transitions: 0
+
+use_min_to_update_actor: True
+
+decay_type: linear

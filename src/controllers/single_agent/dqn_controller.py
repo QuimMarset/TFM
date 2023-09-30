@@ -1,10 +1,11 @@
 import torch as th
 import numpy as np
-from controllers.multi_agent.QMIX.q_controller import QController
+from components.action_selectors import REGISTRY as action_selector_registry
+from controllers.base_classes.base_controller import BaseController
 
 
 
-class DQNController(QController):
+class DQNController(BaseController):
 
     """
         DQN is a single-agent value-based discrete method. Therefore, the action-value network
@@ -21,6 +22,7 @@ class DQNController(QController):
 
     def __init__(self, scheme, args):
         super().__init__(scheme, args)
+        self.action_selector = action_selector_registry[args.action_selector](args)
         self.init_hidden(self.args.batch_size)
 
 

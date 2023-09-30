@@ -29,7 +29,7 @@ grad_norm_clip: 0.5
 
 #optimizer_epsilon: 0.0001
 
-mac: "basic_mac"
+controller: "basic_controller"
 agent: "rnn"
 learner: "q_learner"
 mixer: "qmix"
@@ -50,5 +50,5 @@ save_model_interval: 10000
 
 save_model_end: True
 
-checkpoint_path: D:/MAI/TFM/Resultats/pistonball_discrete/QMIX/compare_1/qmix/experiment_12/run_1/models
-evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/pistonball_discrete/QMIX/compare_2/experiment_97/run_1/models
+#evaluate: True
