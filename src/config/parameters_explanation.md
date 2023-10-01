@@ -30,7 +30,7 @@
 
 * evaluate: If we set it to `False`, we will train a method and evaluate some learned policy otherwise.
   
-* save_frames: If we set it to `True`, we will save the frames the environment renders when evaluating a policy. However, we need `render mode` in `rbg_array` mode.
+* save_frames: If we set it to `True`, we will save the frames the environment renders when evaluating a policy. However, we need `render_mode` in `rbg_array` mode.
 
 * render_mode: It takes to values: `human` and `rgb_array`. The former will render the environment to see how it behaves, while the latter will save that rendering as frames, not showing any window.
 
