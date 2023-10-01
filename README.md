@@ -6,8 +6,6 @@ This repository contains the code to execute and reproduce the thesis experiment
 
 ## Structure
 
-***
-
 The repository contains four folders:
 
 * *src*: Contains the source code
@@ -16,8 +14,6 @@ The repository contains four folders:
 * *gifs*: Contains GIFs with the rendering to show how each method solved the different environments. Nonetheless, we have not created one for all the results we have shown, but only for the best ones (i.e. those we have shown in the respective *Comparison* subsections).
 
 ## Usage
-
-***
 
 You can execute our code using terminal commands or an IDE. In the former case, you can specify the environment and the method to run as follows (assuming you are inside the main folder):
 
