@@ -35,7 +35,7 @@ python src/main.py env_config_name=mujoco_multi algorithm_config_name=jad3 env_a
 
 However, you can modify the YAML files and run the terminal command without those extra arguments. You can even remove those defining the environment and the method and modify the variables `default_env_config_name` and `default_alg_config_name`inside `src/main.py`. Once you change those, you can also run the src/main.py file with an IDE like VisualStudio Code.
 
-We have explained the most essential parameters in the text file `parameters_explanation` inside `src/configs`. We have defined the others in their respective YAML file. 
+We have explained the most essential parameters in the Markdown file `parameters_explanation` inside `src/configs`. We have defined the others in their respective YAML file. 
 
 We do not recommend changing the type of layers the methods use. Methods working with continuous actions are implemented without recurrent layers, so we can ensure the code will work if you change it. We use those parameters to change how many networks you want to train rather than changing the type of layers. You can find the options in the  `__init__` files of `src/modules/agents`and `src/modules/critics`.
 
