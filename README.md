@@ -8,7 +8,7 @@ This repository contains the code to execute and reproduce the thesis experiment
 
 The repository contains four folders:
 
-* *src*: Contains the source code
+* *src*: Contains the source code.
 * *requirements*: Contains two requirements files with the packages (and their versions) used to run the experiments with the PettingZoo and MuJoCo environments. 
 * *configs*: Contains the configuration files to reproduce the results we have explained in the thesis report. Nonetheless, you cannot use those files to run the code, but you must manually copy each value to the corresponding YAML file inside `src/configs`.
 * *gifs*: Contains GIFs with the rendering to show how each method solved the different environments. Nonetheless, we have not created one for all the results we have shown, but only for the best ones (i.e. those we have shown in the respective *Comparison* subsections).

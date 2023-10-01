@@ -34,8 +34,10 @@ gamma: Discount factor used to compute the discounted return
 action_selector: In methods working with discrete actions, we output all the action values. Thus, when exploring, we need to select some action. 
                  Currently, we only have epsilon-greedy exploration
 
-n_batches_to_sample: Methods not relying on recurrent layers sample as many mini-batches of random transitions as septs in an episode. However, if we run several parallel environments, we might want to update fewer times the networks
-buffer_transitions: If we set it to True, the buffer stores random transitions without caring about the order. If we set it to False, it stores complete episodes keeping the order of the transitions
+n_batches_to_sample: Methods not relying on recurrent layers sample as many mini-batches of random transitions as septs in an episode. 
+                     However, if we run several parallel environments, we might want to update fewer times the networks
+buffer_transitions: If we set it to True, the buffer stores random transitions without caring about the order. 
+                    If we set it to False, it stores complete episodes keeping the order of the transitions
 batch_size: Number of transitions/episodes to sample each time we want to update the networks 
 buffer_size: Maximum number of transitions/episodes to store. Usually, we store fewer episodes than transitions
 
