@@ -61,5 +61,5 @@ save_model_interval: 200000
 
 save_model_end: True
 
-#checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/experiment_86/run_2/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/experiment_86/run_1/models
+evaluate: True

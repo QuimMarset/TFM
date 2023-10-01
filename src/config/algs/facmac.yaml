@@ -43,7 +43,7 @@ grad_norm_clip_critic: 0.5
 learner: "facmac_learner"
 controller: "facmac_controller"
 critic_controller: "factorized_critic_controller"
-agent: "mlp_actor"
+agent: "shared_but_first_actor_mlp"
 critic: "mlp"
 mixer: "qmix"
 
@@ -64,5 +64,5 @@ actions_regularization: False
 
 save_model_end: True
 
-#checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/FACMAC/compare_20/experiment_89/run_2/models
-#evaluate: True
+checkpoint_path: D:\MAI\TFM\Resultats\many_swimmer_10\FACMAC\compare_1\experiment_47\run_4\models
+evaluate: True

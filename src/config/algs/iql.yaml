@@ -45,5 +45,5 @@ save_model_interval: 5000
 
 save_model_end: True
 
-#checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/IQL/experiment_74/run_1/models" 
-#evaluate: True
+checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/IQL/experiment_74/run_2/models" 
+evaluate: True

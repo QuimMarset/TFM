@@ -55,5 +55,5 @@ save_model_interval: 50000
 
 save_model_end: True
 
-#checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/MADDPG/compare_2/experiment_60/run_3/models" 
-#evaluate: True
+checkpoint_path: "D:/MAI/TFM/Resultats/pistonball_discrete/MADDPG/compare_2/experiment_60/run_3/models" 
+evaluate: True

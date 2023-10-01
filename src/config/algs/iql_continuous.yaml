@@ -42,7 +42,7 @@ learner: "iql_continuous_learner"
 controller: "facmac_controller"
 critic_controller: "factorized_critic_controller"
 agent: "shared_but_first_actor_mlp"
-critic: "mlp"
+critic: "shared_but_first_mlp"
 
 hidden_dim: 64
 
@@ -57,5 +57,5 @@ actions_regularization: False
 
 save_model_end: True
 
-#checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/IQL/compare_2/experiment_57/run_3/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/many_swimmer/IQL/compare_2/experiment_57/run_3/models
+evaluate: True

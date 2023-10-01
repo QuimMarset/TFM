@@ -2,7 +2,7 @@
 
 name: "transf_qmix_discrete"
 
-seed: 49761
+seed: 0
 
 # To keep the token dimension fixed, observaion id and last action should not be included
 add_agent_id: False
@@ -65,5 +65,5 @@ save_model_end: True
 
 use_cuda: True
 
-#checkpoint_path: D:\MAI\TFM\TFM\results\pistonball\transf_qmix_discrete\experiment_26\run_3\models
-#evaluate: True
+checkpoint_path: D:\MAI\TFM\TFM\results\pistonball\transf_qmix_discrete\experiment_26\run_5\models
+evaluate: True

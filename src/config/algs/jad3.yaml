@@ -57,7 +57,7 @@ learner: "jad3_learner"
 controller: "jad3_controller"
 critic_controller: "jad3_critic_controller"
 agent: "mlp_actor"
-critic: "double_critic"
+critic: "shared_but_first_double_critic"
 mixer: "qmix"
 
 mixing_embed_dim: 32
@@ -77,5 +77,5 @@ save_model_interval: 100000
 
 save_model_end: True
 
-#checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/experiment_58/run_2/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/Resultats/Ant-v4/experiment_58/run_2/models
+evaluate: True

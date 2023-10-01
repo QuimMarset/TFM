@@ -6,14 +6,14 @@ env_args:
     agent_conf: "10x2" # Number of agents x number of hinges per agent
     agent_obsk: 0 # If we set it bigger than 0, each agent will receive information from others
     #global_categories: "qvel" # Which information we add from the global nodes (e.g. the non-controllable segment in ManyAgent Swimmer)
-    render_mode: human # We can set it to None, human, or rgb_array
+    render_mode: rgb_array # We can set it to None, human, or rgb_array
 
-save_frames: False
+save_frames: True
 
 repetitions: 1
 
 test_interval: 20000
-test_nepisode: 20
+test_nepisode: 10
 log_interval: 5000
 runner_log_interval: 5000
 learner_log_interval: 5000

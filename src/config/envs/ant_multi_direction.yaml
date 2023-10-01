@@ -7,9 +7,9 @@ env_args:
     agent_obsk: 0
     global_categories: "qvel" # We always receive the linear and angular velocity from the torso
     #healthy_reward: 0 # We do not consider the term in the reward that gives score for being alive
-    #render_mode: human
+    render_mode: rgb_array
 
-save_frames: False
+save_frames: True
 
 repetitions: 1
 

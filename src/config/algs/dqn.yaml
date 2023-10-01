@@ -8,7 +8,7 @@ action_selector: "epsilon_greedy"
 epsilon_start: 1.0
 epsilon_finish: 0.05
 epsilon_anneal_time: 50000
-evaluation_epsilon: 0.05
+evaluation_epsilon: 0
 
 buffer_transitions: True
 n_batches_to_sample: -1
@@ -48,5 +48,5 @@ save_model_end: True
 standardize_returns: True
 standardize_rewards: True
 
-#checkpoint_path: D:/MAI/TFM/Resultats/pistonball_discrete/DQN/compare_2/experiment_71/run_2/models
-#evaluate: True
+checkpoint_path: D:/MAI/TFM/TFM/results/pistonball/dqn/experiment_46/run_3/models
+evaluate: True

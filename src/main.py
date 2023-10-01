@@ -39,8 +39,8 @@ def run_repetition(config, experiment_path, repetition_index):
 
 if __name__ == '__main__':
 
-    default_env_config_name = 'pettingzoo'
-    default_alg_config_name = 'qmix'
+    default_env_config_name = 'ant_multi_direction'
+    default_alg_config_name = 'td3'
 
     params = deepcopy(sys.argv)
     params_dict = input_args_to_dict(params)
